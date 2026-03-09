@@ -14,6 +14,10 @@
   <meta name="apple-mobile-web-app-title" content="还款计算">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=IBM+Plex+Mono:wght@300;400;500&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -304,23 +308,15 @@
   <div class="modal-box">
     <div class="modal-icon">◈</div>
     <div class="modal-title">债务清偿计算器</div>
-    <div class="modal-sub">输入用户名，系统将自动保存您的所有数据，下次直接加载，无需重新输入。</div>
-
-    <div id="existingSection" style="display:none">
-      <div class="modal-sec">已保存的用户</div>
-      <div class="modal-user-chips" id="userChips"></div>
-      <div class="modal-or"><span>或创建新用户</span></div>
-    </div>
-
-    <div class="modal-sec">用户名</div>
-    <div class="modal-input-wrap">
-      <input type="text" id="usernameInput" placeholder="输入您的用户名…" style="background:var(--surface)">
-    </div>
-
+    <div class="modal-sub">使用 Google 帐号登录，数据将自动同步至云端，多设备均可使用。</div>
     <div class="modal-actions">
-      <button class="modal-btn-primary" onclick="doLogin()">开始使用 →</button>
-      <button class="modal-btn-ghost"   onclick="skipLogin()">跳过</button>
+      <button class="modal-btn-primary" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        使用 Google 帐号登录
+      </button>
+      <button class="modal-btn-ghost" onclick="skipLogin()">跳过（仅本机使用）</button>
     </div>
+    <div id="authError" style="color:var(--red);font-size:.8rem;margin-top:12px;text-align:center;display:none"></div>
   </div>
 </div>
 
@@ -341,7 +337,7 @@
     <span class="ub-time" id="ubTime">尚未保存</span>
     <div class="ub-spacer"></div>
     <button class="ub-btn save" onclick="manualSave()">保存</button>
-    <button class="ub-btn"     onclick="showLoginModal()">切换用户</button>
+    <button class="ub-btn"     onclick="doSignOut()">退出</button>
   </div>
 
   <div class="layout">
@@ -498,15 +494,74 @@ let debtId = 0, phaseId = 0, itemId = 0;
 let chartInst = null;
 let currentUser = null;
 let toastTimer  = null;
+let guestMode   = false;
+
+// ─── Firebase ─────────────────────────────────────────────────────────────────
+// 👇 Paste your Firebase config here (from Firebase Console → Project Settings → Your apps)
+const firebaseConfig = {
+  apiKey: "AIzaSyD6wNB3UdbXTLZ3bTebyNa0JlOggA7e0zg",
+  authDomain: "debt-calculator-1f229.firebaseapp.com",
+  projectId: "debt-calculator-1f229",
+  storageBucket: "debt-calculator-1f229.firebasestorage.app",
+  messagingSenderId: "362234554802",
+  appId: "1:362234554802:web:8afde0840a06ecf6145cab"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// Auth: Google sign-in
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    const el = document.getElementById('authError');
+    el.textContent = '登录失败：' + err.message;
+    el.style.display = 'block';
+  });
+}
+
+function doSignOut() {
+  auth.signOut();
+}
+
+// React to login / logout
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    guestMode   = false;
+    currentUser = user.uid;
+    const data  = await loadProfile();
+    if (data) {
+      restoreFormData(data);
+      updateUserBar(user.displayName || user.email, data.savedAt);
+      setTimeout(() => toast('已加载您的数据 ✓'), 400);
+    } else {
+      updateUserBar(user.displayName || user.email, null);
+      if (!document.querySelector('.debt-card')) addDebt();
+    }
+    hideLoginModal();
+  } else {
+    currentUser = null;
+    document.getElementById('userBar').style.display = 'none';
+    if (!guestMode) showLoginModal();
+  }
+});
+
+// Firestore save / load
+async function saveProfile(data) {
+  if (!currentUser) return;
+  await db.collection('users').doc(currentUser).set(data);
+}
+
+async function loadProfile() {
+  if (!currentUser) return null;
+  const snap = await db.collection('users').doc(currentUser).get();
+  return snap.exists ? snap.data() : null;
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.getElementById('hDate').innerHTML =
   new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'}) +
   '<br><span style="opacity:.5">今日计算基准日</span>';
-
-document.getElementById('usernameInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
 
 // ─── Strategy ─────────────────────────────────────────────────────────────────
 function setStrat(btn, s) {
@@ -1021,20 +1076,6 @@ function toast(msg, type='success') {
   toastTimer=setTimeout(()=>el.classList.remove('on'),2400);
 }
 
-// ─── User / localStorage ──────────────────────────────────────────────────────
-function lsGet(key) { try { return JSON.parse(localStorage.getItem(STORE_KEY+key)); } catch { return null; } }
-function lsSet(key, val) { try { localStorage.setItem(STORE_KEY+key, JSON.stringify(val)); } catch {} }
-
-function getUsers()      { return lsGet('users') || []; }
-function getCurrentUser(){ return lsGet('current') || null; }
-
-function saveProfile(username, data) {
-  const users = getUsers();
-  if (!users.includes(username)) users.push(username);
-  lsSet('users', users);
-  lsSet('data_'+username, data);
-}
-function loadProfile(username) { return lsGet('data_'+username); }
 
 // ─── Collect / restore form data ─────────────────────────────────────────────
 function collectFormData() {
@@ -1095,8 +1136,8 @@ function restoreFormData(data) {
 }
 
 // ─── User bar update ──────────────────────────────────────────────────────────
-function updateUserBar(savedAt) {
-  document.getElementById('ubName').textContent = currentUser;
+function updateUserBar(displayName, savedAt) {
+  document.getElementById('ubName').textContent = displayName || '用户';
   const el = document.getElementById('ubTime');
   if (savedAt) {
     const d = new Date(savedAt);
@@ -1104,26 +1145,12 @@ function updateUserBar(savedAt) {
   } else {
     el.textContent = '尚未保存';
   }
-  document.getElementById('userBar').style.display='flex';
+  document.getElementById('userBar').style.display = 'flex';
 }
 
-// ─── Login flow ───────────────────────────────────────────────────────────────
+// ─── Login modal helpers ───────────────────────────────────────────────────────
 function showLoginModal() {
-  const users = getUsers();
-  const section = document.getElementById('existingSection');
-  const chips   = document.getElementById('userChips');
-  if (users.length > 0) {
-    chips.innerHTML='';
-    users.forEach(u=>{
-      const btn=document.createElement('button'); btn.className='u-chip'; btn.textContent=u;
-      btn.onclick=()=>loginAs(u, loadProfile(u));
-      chips.appendChild(btn);
-    });
-    section.style.display='';
-  } else {
-    section.style.display='none';
-  }
-  document.getElementById('usernameInput').value='';
+  document.getElementById('authError').style.display = 'none';
   document.getElementById('loginModal').classList.add('on');
 }
 
@@ -1131,71 +1158,36 @@ function hideLoginModal() {
   document.getElementById('loginModal').classList.remove('on');
 }
 
-function loginAs(username, data) {
-  currentUser = username;
-  lsSet('current', username);
-  if (data) {
-    restoreFormData(data);
-    updateUserBar(data.savedAt);
-    toast('已加载您的数据 ✓');
-  } else {
-    updateUserBar(null);
-    toast('已创建新用户档案');
-  }
-  hideLoginModal();
-}
-
-function doLogin() {
-  const username = document.getElementById('usernameInput').value.trim();
-  if (!username) { document.getElementById('usernameInput').focus(); return; }
-  loginAs(username, loadProfile(username));
-}
-
 function skipLogin() {
+  guestMode   = true;
   currentUser = null;
-  document.getElementById('userBar').style.display='none';
+  document.getElementById('userBar').style.display = 'none';
   hideLoginModal();
-  // Ensure at least one debt card
   if (!document.querySelector('.debt-card')) addDebt();
 }
 
-function manualSave() {
+// ─── Save ─────────────────────────────────────────────────────────────────────
+async function manualSave() {
   if (!currentUser) { showLoginModal(); return; }
   const data = collectFormData();
-  saveProfile(currentUser, data);
-  updateUserBar(data.savedAt);
+  await saveProfile(data);
+  const u = auth.currentUser;
+  updateUserBar(u?.displayName || u?.email || '用户', data.savedAt);
   toast('数据已保存 ✓');
 }
 
-function autoSave() {
+async function autoSave() {
   if (!currentUser) return;
   const data = collectFormData();
-  saveProfile(currentUser, data);
-  updateUserBar(data.savedAt);
+  await saveProfile(data);
+  const u = auth.currentUser;
+  updateUserBar(u?.displayName || u?.email || '用户', data.savedAt);
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-(function init() {
-  const saved = getCurrentUser();
-  if (saved) {
-    const data = loadProfile(saved);
-    currentUser = saved;
-    lsSet('current', saved);
-    if (data) {
-      restoreFormData(data);
-      updateUserBar(data.savedAt);
-    } else {
-      updateUserBar(null);
-      if (!document.querySelector('.debt-card')) addDebt();
-    }
-    hideLoginModal();
-    if (data) setTimeout(()=>toast('已加载您的数据 ✓'),400);
-  } else {
-    // First visit: show modal but pre-add one debt for when they skip
-    addDebt();
-    showLoginModal();
-  }
-})();
+// Firebase onAuthStateChanged handles user restoration automatically.
+// Add one debt card so the UI isn't empty while auth resolves.
+addDebt();
 
 // ─── Service Worker Registration ──────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
