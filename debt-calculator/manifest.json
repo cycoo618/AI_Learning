@@ -1,0 +1,25 @@
+{
+  "name": "债务清偿计算器",
+  "short_name": "还款计算",
+  "description": "精确计算贷款还清时间，支持多负债、阶段性收入与双周发薪",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06090f",
+  "theme_color": "#c9963a",
+  "lang": "zh-Hans",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
