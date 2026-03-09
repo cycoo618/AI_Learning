@@ -60,6 +60,26 @@
     .h-left p  { margin-top:6px; font-size:.76rem; color:var(--text-2); letter-spacing:.08em; font-family:var(--mono); }
     .h-date    { font-family:var(--mono); font-size:.72rem; color:var(--text-3); text-align:right; line-height:1.6; }
 
+    /* ── Header controls (lang + currency) ── */
+    .h-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .lang-btn {
+      font-family:var(--mono); font-size:.7rem; font-weight:500; letter-spacing:.05em;
+      padding:4px 10px; background:transparent; border:1px solid var(--border2);
+      border-radius:5px; color:var(--text-2); cursor:pointer; transition:all .18s;
+      white-space:nowrap;
+    }
+    .lang-btn:hover { border-color:var(--gold); color:var(--gold); }
+    .lang-btn .l-seg { display:inline-block; }
+    .lang-btn .l-seg.active { color:var(--gold); }
+    .lang-btn .l-div { margin:0 4px; color:var(--border2); }
+    .cur-sel-wrap { display:flex; align-items:center; }
+    .cur-sel-wrap select {
+      width:auto; padding:4px 26px 4px 8px; font-size:.7rem; font-family:var(--mono);
+      color:var(--text-2); background:transparent; border:1px solid var(--border2);
+      border-radius:5px; cursor:pointer; transition:all .18s;
+    }
+    .cur-sel-wrap select:hover, .cur-sel-wrap select:focus { border-color:var(--gold); color:var(--gold); box-shadow:none; }
+
     /* ── User bar ── */
     .user-bar {
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
@@ -112,6 +132,7 @@
     .dc-row .dn { flex:1.4; min-width:0; }
     .dc-row .db { flex:1.2; min-width:0; }
     .dc-row .dr { flex:0 0 96px; min-width:0; }
+    .dc-row .dm { flex:1; min-width:0; }
     .debt-footer { display:flex; align-items:center; justify-content:flex-end; margin-top:9px; }
     .debt-total-line { font-family:var(--mono); font-size:.73rem; color:var(--text-2); }
     .debt-total-line span { color:var(--gold); font-weight:500; }
@@ -307,36 +328,36 @@
 <div class="modal-overlay on" id="loginModal">
   <div class="modal-box">
     <div class="modal-icon">◈</div>
-    <div class="modal-title">债务清偿计算器</div>
+    <div class="modal-title" data-i18n="appTitle">债务清偿计算器</div>
 
     <!-- Step 1: choose mode -->
     <div id="modalStep1">
-      <div class="modal-sub">使用 Google 帐号登录，数据将自动同步至云端，多设备均可使用。</div>
+      <div class="modal-sub" data-i18n="modalSub">使用 Google 帐号登录，数据将自动同步至云端，多设备均可使用。</div>
       <div class="modal-actions">
         <button class="modal-btn-primary" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:8px">
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          使用 Google 帐号登录
+          <span data-i18n="signInGoogle">使用 Google 帐号登录</span>
         </button>
-        <button class="modal-btn-ghost" onclick="showLocalStep()">仅本机使用</button>
+        <button class="modal-btn-ghost" onclick="showLocalStep()" data-i18n="localOnly">仅本机使用</button>
       </div>
       <div id="authError" style="color:var(--red);font-size:.8rem;margin-top:12px;text-align:center;display:none"></div>
     </div>
 
     <!-- Step 2: local username -->
     <div id="modalStep2" style="display:none">
-      <div class="modal-sub">数据仅保存在本机浏览器，不支持多设备同步。</div>
+      <div class="modal-sub" data-i18n="localSub">数据仅保存在本机浏览器，不支持多设备同步。</div>
       <div id="localExistingSection" style="display:none">
-        <div class="modal-sec">已保存的本机用户</div>
+        <div class="modal-sec" data-i18n="savedUsers">已保存的本机用户</div>
         <div class="modal-user-chips" id="localUserChips"></div>
-        <div class="modal-or"><span>或创建新用户</span></div>
+        <div class="modal-or"><span data-i18n="orCreate">或创建新用户</span></div>
       </div>
-      <div class="modal-sec">用户名</div>
+      <div class="modal-sec" data-i18n="username">用户名</div>
       <div class="modal-input-wrap">
-        <input type="text" id="localUsernameInput" placeholder="输入用户名…" style="background:var(--surface)">
+        <input type="text" id="localUsernameInput" data-i18n-ph="usernamePh" placeholder="输入用户名…" style="background:var(--surface)">
       </div>
       <div class="modal-actions">
-        <button class="modal-btn-primary" onclick="doLocalLogin()">开始使用 →</button>
-        <button class="modal-btn-ghost"   onclick="showStep1()">← 返回</button>
+        <button class="modal-btn-primary" onclick="doLocalLogin()" data-i18n="startUsing">开始使用 →</button>
+        <button class="modal-btn-ghost"   onclick="showStep1()" data-i18n="back">← 返回</button>
       </div>
     </div>
   </div>
@@ -346,20 +367,43 @@
 <div class="wrap">
   <header>
     <div class="h-left">
-      <h1>债务<em>清偿</em>计算器</h1>
+      <h1 data-i18n="appTitle">债务<em>清偿</em>计算器</h1>
       <p>DEBT CLEARANCE PLANNER · FINANCIAL CALCULATOR</p>
     </div>
-    <div class="h-date" id="hDate"></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <div class="h-controls">
+        <!-- Currency selector -->
+        <div class="cur-sel-wrap">
+          <select id="currencySelect" onchange="setCurrency(this.value)">
+            <option value="USD">USD ($)</option>
+            <option value="CAD">CAD (CA$)</option>
+            <option value="AUD">AUD (A$)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="CNY">CNY (¥)</option>
+            <option value="HKD">HKD (HK$)</option>
+            <option value="TWD">TWD (NT$)</option>
+            <option value="SGD">SGD (S$)</option>
+            <option value="JPY">JPY (¥)</option>
+          </select>
+        </div>
+        <!-- Language toggle -->
+        <button class="lang-btn" id="langBtn" onclick="toggleLang()">
+          <span class="l-seg" id="lseg-zh">中</span><span class="l-div">|</span><span class="l-seg" id="lseg-en">EN</span>
+        </button>
+      </div>
+      <div class="h-date" id="hDate"></div>
+    </div>
   </header>
 
   <!-- User bar -->
   <div class="user-bar" id="userBar" style="display:none">
     <div class="ub-user"><div class="ub-dot"></div><span id="ubName">—</span></div>
     <span class="ub-sep">|</span>
-    <span class="ub-time" id="ubTime">尚未保存</span>
+    <span class="ub-time" id="ubTime" data-i18n="notSaved">尚未保存</span>
     <div class="ub-spacer"></div>
-    <button class="ub-btn save" onclick="manualSave()">保存</button>
-    <button class="ub-btn" id="ubActionBtn" onclick="doSignOut()">退出</button>
+    <button class="ub-btn save" onclick="manualSave()" data-i18n="save">保存</button>
+    <button class="ub-btn" id="ubActionBtn" onclick="doSignOut()" data-i18n="signOut">退出</button>
   </div>
 
   <div class="layout">
@@ -367,21 +411,21 @@
     <!-- ════ LEFT INPUT PANEL ════ -->
     <div>
       <div class="panel">
-        <div class="panel-hd"><div class="pip"></div><h2>输入参数</h2></div>
+        <div class="panel-hd"><div class="pip"></div><h2 data-i18n="inputParams">输入参数</h2></div>
         <div class="panel-bd">
 
           <!-- Strategy -->
           <div class="section">
-            <div class="sec-lbl">还款策略</div>
+            <div class="sec-lbl" data-i18n="strategy">还款策略</div>
             <div class="strat-row">
               <button class="stbtn active" data-strategy="avalanche" onclick="setStrat(this,'avalanche')">
-                <span class="st-name">雪崩法</span><span class="st-desc">高利率优先</span>
+                <span class="st-name" data-i18n="avalancheName">雪崩法</span><span class="st-desc" data-i18n="avalancheDesc">高利率优先</span>
               </button>
               <button class="stbtn" data-strategy="snowball" onclick="setStrat(this,'snowball')">
-                <span class="st-name">雪球法</span><span class="st-desc">小额优先</span>
+                <span class="st-name" data-i18n="snowballName">雪球法</span><span class="st-desc" data-i18n="snowballDesc">小额优先</span>
               </button>
               <button class="stbtn" data-strategy="prorata" onclick="setStrat(this,'prorata')">
-                <span class="st-name">均摊法</span><span class="st-desc">按比例分配</span>
+                <span class="st-name" data-i18n="prorataName">均摊法</span><span class="st-desc" data-i18n="prorataDesc">按比例分配</span>
               </button>
             </div>
           </div>
@@ -390,13 +434,13 @@
 
           <!-- Debts -->
           <div class="section">
-            <div class="sec-lbl">负债清单</div>
+            <div class="sec-lbl" data-i18n="debtList">负债清单</div>
             <div id="debtList"></div>
             <div class="debt-footer">
-              <div class="debt-total-line">总负债：<span id="dtVal">—</span></div>
+              <div class="debt-total-line"><span data-i18n="totalDebt">总负债</span>：<span id="dtVal">—</span></div>
             </div>
             <div style="margin-top:9px">
-              <button class="add-btn" onclick="addDebt()">＋ 添加负债</button>
+              <button class="add-btn" onclick="addDebt()">＋ <span data-i18n="addDebt">添加负债</span></button>
             </div>
           </div>
 
@@ -404,49 +448,57 @@
 
           <!-- Phase timeline -->
           <div class="section">
-            <div class="sec-lbl">收入与支出时间表</div>
+            <div class="sec-lbl" data-i18n="incomeExpSched">收入与支出时间表</div>
             <div class="phase-initial">
-              <div class="pi-tag">初始阶段（从今天起）</div>
+              <div class="pi-tag" data-i18n="initialPhase">初始阶段（从今天起）</div>
               <div class="row2">
                 <div class="field">
-                  <label>薪资收入（每期金额）</label>
+                  <label data-i18n="salaryIncome">薪资收入（每期金额）</label>
                   <div style="display:flex;gap:6px">
-                    <div class="inp-wrap" style="flex:1"><span class="inp-pre">$</span><input type="number" id="init-income" class="pl" placeholder="8000" min="0"></div>
+                    <div class="inp-wrap" style="flex:1"><span class="inp-pre cur-sym">$</span><input type="number" id="init-income" class="pl" placeholder="8000" min="0"></div>
                     <select id="init-income-freq" class="freq-sel">
-                      <option value="monthly">/ 月</option>
-                      <option value="biweekly">/ 两周</option>
+                      <option value="monthly" data-i18n="perMonth">/ 月</option>
+                      <option value="biweekly" data-i18n="perBiweek">/ 两周</option>
                     </select>
                   </div>
                 </div>
                 <div class="field">
-                  <label>月固定支出</label>
-                  <div class="inp-wrap"><span class="inp-pre">$</span><input type="number" id="init-exp" class="pl" placeholder="4000" min="0"></div>
+                  <label data-i18n="fixedExp">月固定支出</label>
+                  <div style="display:flex;gap:6px">
+                    <div class="inp-wrap" style="flex:1"><span class="inp-pre cur-sym">$</span><input type="number" id="init-exp" class="pl" placeholder="4000" min="0"></div>
+                    <select id="init-exp-freq" class="freq-sel">
+                      <option value="monthly" data-i18n="perMonth">/ 月</option>
+                      <option value="biweekly" data-i18n="perBiweek">/ 两周</option>
+                      <option value="semi-annual" data-i18n="perSemiAnnual">/ 半年</option>
+                      <option value="annual" data-i18n="perAnnual">/ 年</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
             <div class="payday-box">
-              <div class="pi-tag">发薪日锚点（双周发薪必填）</div>
+              <div class="pi-tag" data-i18n="paydayAnchor">发薪日锚点（双周发薪必填）</div>
               <div class="field" style="margin-bottom:0">
-                <label>任意一个实际发薪日</label>
+                <label data-i18n="paydayRef">任意一个实际发薪日</label>
                 <div class="inp-wrap"><input type="date" id="payday-ref"></div>
               </div>
-              <div class="payday-note">填写后将精确计算每月实际发薪次数（每年约 2 个月含 3 次发薪 ★），第 3 次薪水将额外用于还款。</div>
+              <div class="payday-note" data-i18n="paydayNote">填写后将精确计算每月实际发薪次数（每年约 2 个月含 3 次发薪 ★），第 3 次薪水将额外用于还款。</div>
             </div>
 
             <div id="phaseList"></div>
-            <button class="add-btn" onclick="addPhase()">＋ 添加收入/支出变动</button>
+            <button class="add-btn" onclick="addPhase()">＋ <span data-i18n="addPhase">添加收入/支出变动</span></button>
           </div>
 
           <div class="divider"></div>
 
           <!-- Extra items -->
           <div class="section">
-            <div class="sec-lbl">额外收入 / 支出</div>
+            <div class="sec-lbl" data-i18n="extraItems">额外收入 / 支出</div>
             <div id="extraList"></div>
-            <button class="add-btn" onclick="addItem()">＋ 添加额外项目</button>
+            <button class="add-btn" onclick="addItem()">＋ <span data-i18n="addExtra">添加额外项目</span></button>
           </div>
 
-          <button class="calc-btn" onclick="calculate()">⟶ 计算还清时间</button>
+          <button class="calc-btn" onclick="calculate()" data-i18n="calcBtn">⟶ 计算还清时间</button>
         </div>
       </div>
     </div>
@@ -456,44 +508,49 @@
       <div class="warn-box" id="warnBox"></div>
       <div class="placeholder" id="placeholder">
         <div class="placeholder-icon">◈</div>
-        <p>填写左侧参数后点击「计算还清时间」，系统将为您生成详细的还款时间线与分析报告。</p>
+        <p data-i18n="placeholderText">填写左侧参数后点击「计算还清时间」，系统将为您生成详细的还款时间线与分析报告。</p>
       </div>
       <div class="results" id="results">
         <div class="sum-grid">
           <div class="sum-card c-green" id="sc1">
-            <div class="sum-lbl">预计还清日期</div>
+            <div class="sum-lbl" data-i18n="payoffDate">预计还清日期</div>
             <div class="sum-val green" id="rDate">—</div>
             <div class="sum-sub"       id="rDateSub">—</div>
           </div>
           <div class="sum-card c-gold" id="sc2">
-            <div class="sum-lbl">还款期数</div>
+            <div class="sum-lbl" data-i18n="payoffPeriods">还款期数</div>
             <div class="sum-val gold" id="rMonths">—</div>
             <div class="sum-sub"      id="rYrsMo">—</div>
           </div>
           <div class="sum-card c-red" id="sc3">
-            <div class="sum-lbl">总利息支出</div>
+            <div class="sum-lbl" data-i18n="totalInterest">总利息支出</div>
             <div class="sum-val red" id="rInterest">—</div>
             <div class="sum-sub"     id="rIntPct">—</div>
           </div>
         </div>
         <div class="pb-panel" id="pbPanel">
-          <div class="pb-hd"><div class="pip" id="pbPip" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></div>各债务还清时间</div>
+          <div class="pb-hd"><div class="pip" id="pbPip" style="background:var(--gold);box-shadow:0 0 8px var(--gold)"></div><span data-i18n="debtPayoffTimes">各债务还清时间</span></div>
           <div class="pb-grid" id="pbGrid"></div>
         </div>
         <div class="flow-card" id="flowCard">
-          <div class="flow-hd"><div class="pip"></div>月度现金流概况</div>
+          <div class="flow-hd"><div class="pip"></div><span data-i18n="cashFlowSummary">月度现金流概况</span></div>
           <div class="flow-items" id="flowItems"></div>
         </div>
         <div class="chart-panel" id="chartPanel">
-          <div class="chart-hd"><div class="pip"></div>债务余额走势图</div>
+          <div class="chart-hd"><div class="pip"></div><span data-i18n="debtTrend">债务余额走势图</span></div>
           <div class="chart-wrap"><canvas id="balChart"></canvas></div>
         </div>
         <div class="tbl-panel" id="tblPanel">
-          <div class="tbl-hd"><div class="pip"></div>月度还款明细</div>
+          <div class="tbl-hd"><div class="pip"></div><span data-i18n="monthlyDetail">月度还款明细</span></div>
           <div class="tbl-scroll">
             <table>
               <thead><tr>
-                <th>月份</th><th>阶段</th><th>当月还款</th><th>利息</th><th>实际减少</th><th>剩余债务</th>
+                <th data-i18n="colMonth">月份</th>
+                <th data-i18n="colPhase">阶段</th>
+                <th data-i18n="colPayment">当月还款</th>
+                <th data-i18n="colInterest">利息</th>
+                <th data-i18n="colReduction">实际减少</th>
+                <th data-i18n="colRemaining">剩余债务</th>
               </tr></thead>
               <tbody id="tblBody"></tbody>
             </table>
@@ -519,6 +576,358 @@ let toastTimer  = null;
 let guestMode   = false;
 let localUser   = null;
 
+// ─── I18N ────────────────────────────────────────────────────────────────────
+const I18N = {
+  zh: {
+    appTitle:         '债务清偿计算器',
+    modalSub:         '使用 Google 帐号登录，数据将自动同步至云端，多设备均可使用。',
+    signInGoogle:     '使用 Google 帐号登录',
+    localOnly:        '仅本机使用',
+    localSub:         '数据仅保存在本机浏览器，不支持多设备同步。',
+    savedUsers:       '已保存的本机用户',
+    orCreate:         '或创建新用户',
+    username:         '用户名',
+    usernamePh:       '输入用户名…',
+    startUsing:       '开始使用 →',
+    back:             '← 返回',
+    inputParams:      '输入参数',
+    strategy:         '还款策略',
+    avalancheName:    '雪崩法',
+    avalancheDesc:    '高利率优先',
+    snowballName:     '雪球法',
+    snowballDesc:     '小额优先',
+    prorataName:      '均摊法',
+    prorataDesc:      '按比例分配',
+    debtList:         '负债清单',
+    totalDebt:        '总负债',
+    addDebt:          '添加负债',
+    debtName:         '负债名称',
+    balance:          '余额',
+    rate:             '利率',
+    minPayment:       '最低还款',
+    incomeExpSched:   '收入与支出时间表',
+    initialPhase:     '初始阶段（从今天起）',
+    salaryIncome:     '薪资收入（每期金额）',
+    fixedExp:         '月固定支出',
+    paydayAnchor:     '发薪日锚点（双周发薪必填）',
+    paydayRef:        '任意一个实际发薪日',
+    paydayNote:       '填写后将精确计算每月实际发薪次数（每年约 2 个月含 3 次发薪 ★），第 3 次薪水将额外用于还款。',
+    addPhase:         '添加收入/支出变动',
+    extraItems:       '额外收入 / 支出',
+    addExtra:         '添加额外项目',
+    income:           '收入',
+    expense:          '支出',
+    itemName:         '项目名称',
+    amount:           '金额',
+    perMonth:         '/ 月',
+    perBiweek:        '/ 两周',
+    perSemiAnnual:    '/ 半年',
+    perAnnual:        '/ 年',
+    everyMonth:       '每月',
+    everyBiweek:      '每两周',
+    everySemiAnnual:  '每半年',
+    everyAnnual:      '每年',
+    customDate:       '自定义日期（一次性）',
+    calcBtn:          '⟶ 计算还清时间',
+    payoffDate:       '预计还清日期',
+    fromNow:          '距今预计',
+    payoffPeriods:    '还款期数',
+    totalInterest:    '总利息支出',
+    debtPayoffTimes:  '各债务还清时间',
+    cashFlowSummary:  '月度现金流概况',
+    debtTrend:        '债务余额走势图',
+    monthlyDetail:    '月度还款明细',
+    colMonth:         '月份',
+    colPhase:         '阶段',
+    colPayment:       '当月还款',
+    colInterest:      '利息',
+    colReduction:     '实际减少',
+    colRemaining:     '剩余债务',
+    save:             '保存',
+    signOut:          '退出',
+    switchUser:       '切换用户',
+    savedAt:          '已保存',
+    notSaved:         '尚未保存',
+    phaseFrom:        '从',
+    phaseTo:          '起',
+    initialLabel:     '初始',
+    phaseIncome:      '收入',
+    phaseExpense:     '月支出',
+    placeholderText:  '填写左侧参数后点击「计算还清时间」，系统将为您生成详细的还款时间线与分析报告。',
+    initMonthly:      '初始月薪（月均）',
+    initMonthlyExp:   '初始月固定支出',
+    initMonthlyNet:   '初始月净额',
+    extraMonthlyNet:  '额外月均净额',
+    avgPayCap:        '月均还款能力',
+    withChanges:      '（含 %d 个变动阶段）',
+    paidThisMonth:    '当月还清',
+    paidAtPeriod:     '第 %d 期还清',
+    annualRate:       '年利率',
+    principal:        '本金',
+    simCapWarn:       '在 %d 个月（约 50 年）内无法还清债务，期末剩余约 %s。请检查各阶段的收入支出设置，或添加额外收入来源。',
+    errNoDebt:        '请至少输入一笔负债金额。',
+    errNoBalance:     '请输入有效的负债余额。',
+    dataLoaded:       '已加载您的数据 ✓',
+    dataSaved:        '数据已保存 ✓',
+    userCreated:      '已创建本机用户档案',
+    approxPrincipal:  '约占本金',
+    totalDebtLabel:   '债务总额',
+    debtBalLabel:     '债务余额',
+    triplePayLabel:   '3薪',
+    today:            '今日计算基准日',
+  },
+  en: {
+    appTitle:         'Debt Payoff Calculator',
+    modalSub:         'Sign in with Google to sync data across devices automatically.',
+    signInGoogle:     'Sign in with Google',
+    localOnly:        'Local only',
+    localSub:         'Data is stored in the local browser only, no multi-device sync.',
+    savedUsers:       'Saved local users',
+    orCreate:         'Or create new user',
+    username:         'Username',
+    usernamePh:       'Enter username…',
+    startUsing:       'Start →',
+    back:             '← Back',
+    inputParams:      'Input Parameters',
+    strategy:         'Repayment Strategy',
+    avalancheName:    'Avalanche',
+    avalancheDesc:    'Highest rate first',
+    snowballName:     'Snowball',
+    snowballDesc:     'Smallest balance first',
+    prorataName:      'Pro-rata',
+    prorataDesc:      'Proportional split',
+    debtList:         'Debt List',
+    totalDebt:        'Total Debt',
+    addDebt:          'Add Debt',
+    debtName:         'Debt name',
+    balance:          'Balance',
+    rate:             'Rate',
+    minPayment:       'Min. payment',
+    incomeExpSched:   'Income & Expense Schedule',
+    initialPhase:     'Initial Phase (from today)',
+    salaryIncome:     'Salary (per period)',
+    fixedExp:         'Fixed monthly expense',
+    paydayAnchor:     'Payday anchor (required for bi-weekly)',
+    paydayRef:        'Any actual payday date',
+    paydayNote:       'Enables precise bi-weekly payday counting (≈2 months/year have 3 paydays ★). The 3rd paycheck goes to debt repayment.',
+    addPhase:         'Add income/expense change',
+    extraItems:       'Extra Income / Expenses',
+    addExtra:         'Add extra item',
+    income:           'Income',
+    expense:          'Expense',
+    itemName:         'Item name',
+    amount:           'Amount',
+    perMonth:         '/ mo',
+    perBiweek:        '/ 2wk',
+    perSemiAnnual:    '/ 6mo',
+    perAnnual:        '/ yr',
+    everyMonth:       'Monthly',
+    everyBiweek:      'Bi-weekly',
+    everySemiAnnual:  'Semi-annual',
+    everyAnnual:      'Annual',
+    customDate:       'Custom date (one-time)',
+    calcBtn:          '⟶ Calculate Payoff',
+    payoffDate:       'Est. Payoff Date',
+    fromNow:          'From now',
+    payoffPeriods:    'Periods',
+    totalInterest:    'Total Interest',
+    debtPayoffTimes:  'Debt Payoff Timeline',
+    cashFlowSummary:  'Monthly Cash Flow',
+    debtTrend:        'Debt Balance Trend',
+    monthlyDetail:    'Monthly Repayment Detail',
+    colMonth:         'Month',
+    colPhase:         'Phase',
+    colPayment:       'Payment',
+    colInterest:      'Interest',
+    colReduction:     'Reduction',
+    colRemaining:     'Remaining',
+    save:             'Save',
+    signOut:          'Sign out',
+    switchUser:       'Switch user',
+    savedAt:          'Saved',
+    notSaved:         'Not saved',
+    phaseFrom:        'From',
+    phaseTo:          'on',
+    initialLabel:     'Initial',
+    phaseIncome:      'Income',
+    phaseExpense:     'Expense',
+    placeholderText:  'Fill in the parameters on the left and click "Calculate Payoff" to generate a detailed repayment timeline.',
+    initMonthly:      'Initial monthly income (avg)',
+    initMonthlyExp:   'Initial fixed monthly expense',
+    initMonthlyNet:   'Initial monthly net',
+    extraMonthlyNet:  'Avg extra monthly net',
+    avgPayCap:        'Avg monthly repayment capacity',
+    withChanges:      '(incl. %d phase changes)',
+    paidThisMonth:    'Paid off this month',
+    paidAtPeriod:     'Paid off at period %d',
+    annualRate:       'APR',
+    principal:        'Principal',
+    simCapWarn:       'Unable to pay off within %d months (~50 years). Remaining balance ≈ %s. Please review your income/expense settings or add extra income.',
+    errNoDebt:        'Please enter at least one debt balance.',
+    errNoBalance:     'Please enter a valid debt balance.',
+    dataLoaded:       'Data loaded ✓',
+    dataSaved:        'Data saved ✓',
+    userCreated:      'Local user profile created',
+    approxPrincipal:  '≈% of principal',
+    totalDebtLabel:   'Total debt',
+    debtBalLabel:     'Debt balance',
+    triplePayLabel:   '3-pay',
+    today:            'Calculation base date',
+  }
+};
+
+let currentLang = localStorage.getItem('dc_lang') || 'zh';
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N['zh'][key]) || key;
+}
+
+function applyLang() {
+  document.documentElement.lang = currentLang;
+  // Update static elements with data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.getAttribute('data-i18n-ph');
+    el.placeholder = t(key);
+  });
+  // Update lang button highlights
+  document.getElementById('lseg-zh').classList.toggle('active', currentLang === 'zh');
+  document.getElementById('lseg-en').classList.toggle('active', currentLang === 'en');
+  // Update h-date
+  updateHDate();
+  // Update ubTime if it shows "not saved" text
+  const ubTimeEl = document.getElementById('ubTime');
+  if (ubTimeEl && ubTimeEl.dataset.raw === 'notSaved') {
+    ubTimeEl.textContent = t('notSaved');
+  }
+  // Re-apply dynamic content labels in existing debt cards, phases, items
+  document.querySelectorAll('.debt-card').forEach(el => {
+    const id = el.id.replace('debt-','');
+    const dnEl = document.getElementById(`dn-${id}`);
+    if (dnEl) dnEl.placeholder = t('debtName');
+    const dbEl = document.getElementById(`db-${id}`);
+    if (dbEl) dbEl.placeholder = t('balance');
+    const dmEl = document.getElementById(`dm-${id}`);
+    if (dmEl) dmEl.placeholder = t('minPayment');
+    const drEl = document.getElementById(`dr-${id}`);
+    if (drEl) drEl.placeholder = t('rate');
+  });
+  document.querySelectorAll('.phase-change').forEach(el => {
+    const id = el.id.replace('pc-','');
+    const lbFrom = el.querySelector('.pc-lbl-from');
+    if (lbFrom) lbFrom.textContent = t('phaseFrom');
+    const lbTo = el.querySelector('.pc-lbl-to');
+    if (lbTo) lbTo.textContent = t('phaseTo');
+    const incEl = document.getElementById(`pc-inc-${id}`);
+    if (incEl) incEl.placeholder = t('phaseIncome');
+    const expEl = document.getElementById(`pc-exp-${id}`);
+    if (expEl) expEl.placeholder = t('phaseExpense');
+    // Update freq selects within phase
+    const incFreqSel = document.getElementById(`pc-incfreq-${id}`);
+    if (incFreqSel) updateFreqSelOptions(incFreqSel, ['monthly','biweekly']);
+    const expFreqSel = document.getElementById(`pc-expfreq-${id}`);
+    if (expFreqSel) updateFreqSelOptions(expFreqSel, ['monthly','biweekly','semi-annual','annual']);
+  });
+  // Update init freq selects
+  updateFreqSelOptions(document.getElementById('init-income-freq'), ['monthly','biweekly']);
+  updateFreqSelOptions(document.getElementById('init-exp-freq'), ['monthly','biweekly','semi-annual','annual']);
+  // Update extra items
+  document.querySelectorAll('.extra-item').forEach(el => {
+    const id = el.id.replace('ei-','');
+    const nameEl = document.getElementById(`en-${id}`);
+    if (nameEl) nameEl.placeholder = t('itemName');
+    const amtEl = document.getElementById(`ea-${id}`);
+    if (amtEl) amtEl.placeholder = t('amount');
+    const incBtn = document.getElementById(`tb-inc-${id}`);
+    if (incBtn) incBtn.textContent = t('income');
+    const expBtn = document.getElementById(`tb-exp-${id}`);
+    if (expBtn) expBtn.textContent = t('expense');
+    const freqSel = document.getElementById(`ef-${id}`);
+    if (freqSel) updateFreqSelOptions(freqSel, ['monthly','biweekly','semi-annual','annual','custom']);
+  });
+  // Update add-btn spans in phase-initial section
+  const initPhaseTag = document.querySelector('.phase-initial .pi-tag');
+  if (initPhaseTag) initPhaseTag.textContent = t('initialPhase');
+  const initIncLabel = document.querySelector('label[for-i18n="salaryIncome"]');
+  // Labels in static HTML use data-i18n already handled above
+}
+
+function updateFreqSelOptions(sel, freqKeys) {
+  if (!sel) return;
+  const freqMap = {
+    monthly:     { key:'perMonth',      evKey:'everyMonth' },
+    biweekly:    { key:'perBiweek',     evKey:'everyBiweek' },
+    'semi-annual':{ key:'perSemiAnnual', evKey:'everySemiAnnual' },
+    annual:      { key:'perAnnual',     evKey:'everyAnnual' },
+    custom:      { key:'customDate',    evKey:'customDate' },
+  };
+  // Determine if this is a "per" type (freq-sel) or "every" type (extra item select)
+  const isFreqSel = sel.classList.contains('freq-sel');
+  Array.from(sel.options).forEach(opt => {
+    const fk = freqMap[opt.value];
+    if (!fk) return;
+    opt.textContent = isFreqSel ? t(fk.key) : t(fk.evKey);
+  });
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('dc_lang', currentLang);
+  applyLang();
+}
+
+// ─── Currency ────────────────────────────────────────────────────────────────
+const CURRENCIES = [
+  {code:'USD', sym:'$',    name:'USD ($)'},
+  {code:'CAD', sym:'CA$',  name:'CAD (CA$)'},
+  {code:'AUD', sym:'A$',   name:'AUD (A$)'},
+  {code:'EUR', sym:'€',    name:'EUR (€)'},
+  {code:'GBP', sym:'£',    name:'GBP (£)'},
+  {code:'CNY', sym:'¥',    name:'CNY (¥)'},
+  {code:'HKD', sym:'HK$',  name:'HKD (HK$)'},
+  {code:'TWD', sym:'NT$',  name:'TWD (NT$)'},
+  {code:'SGD', sym:'S$',   name:'SGD (S$)'},
+  {code:'JPY', sym:'¥',    name:'JPY (¥)'},
+];
+let currSym = '$';
+
+function setCurrency(code) {
+  const cur = CURRENCIES.find(c => c.code === code);
+  if (!cur) return;
+  currSym = cur.sym;
+  localStorage.setItem('dc_currency', code);
+  // Update all visible currency symbols
+  document.querySelectorAll('.cur-sym').forEach(el => { el.textContent = currSym; });
+  // Re-render results if visible
+  if (document.getElementById('results').classList.contains('on')) {
+    // Just re-render the table and results
+    const tblBody = document.getElementById('tblBody');
+    if (tblBody && tblBody._lastHistory) {
+      renderTable(tblBody._lastHistory);
+    }
+    // Re-render summary values if available
+    if (window._lastRenderArgs) {
+      const a = window._lastRenderArgs;
+      renderResults(a.history, a.debts, a.totalDebt, a.totalInterest, a.phases, a.items, a.payoffMap);
+    }
+  }
+  // Update debt total
+  updateDebtTotal();
+}
+
+function initCurrency() {
+  const saved = localStorage.getItem('dc_currency') || 'USD';
+  const sel = document.getElementById('currencySelect');
+  sel.value = saved;
+  const cur = CURRENCIES.find(c => c.code === saved);
+  if (cur) currSym = cur.sym;
+  document.querySelectorAll('.cur-sym').forEach(el => { el.textContent = currSym; });
+}
+
 // ─── Local storage (本机模式) ─────────────────────────────────────────────────
 function lsGet(key)      { try { return JSON.parse(localStorage.getItem(STORE_KEY+key)); } catch { return null; } }
 function lsSet(key, val) { try { localStorage.setItem(STORE_KEY+key, JSON.stringify(val)); } catch {} }
@@ -531,7 +940,6 @@ function saveLocalProfile(username, data) {
 function loadLocalProfile(username) { return lsGet('data_'+username); }
 
 // ─── Firebase ─────────────────────────────────────────────────────────────────
-// 👇 Paste your Firebase config here (from Firebase Console → Project Settings → Your apps)
 const firebaseConfig = {
   apiKey: "AIzaSyD6wNB3UdbXTLZ3bTebyNa0JlOggA7e0zg",
   authDomain: "debt-calculator-1f229.firebaseapp.com",
@@ -549,7 +957,7 @@ function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   auth.signInWithPopup(provider).catch(err => {
     const el = document.getElementById('authError');
-    el.textContent = '登录失败：' + err.message;
+    el.textContent = (currentLang==='en'?'Login failed: ':'登录失败：') + err.message;
     el.style.display = 'block';
   });
 }
@@ -568,7 +976,7 @@ auth.onAuthStateChanged(async user => {
     if (data) {
       restoreFormData(data);
       updateUserBar(user.displayName || user.email, data.savedAt, 'cloud');
-      setTimeout(() => toast('已加载您的数据 ✓'), 400);
+      setTimeout(() => toast(t('dataLoaded')), 400);
     } else {
       updateUserBar(user.displayName || user.email, null, 'cloud');
       if (!document.querySelector('.debt-card')) addDebt();
@@ -603,9 +1011,12 @@ async function loadProfile() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-document.getElementById('hDate').innerHTML =
-  new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'}) +
-  '<br><span style="opacity:.5">今日计算基准日</span>';
+function updateHDate() {
+  const locale = currentLang === 'zh' ? 'zh-CN' : 'en-US';
+  document.getElementById('hDate').innerHTML =
+    new Date().toLocaleDateString(locale,{year:'numeric',month:'long',day:'numeric',weekday:'long'}) +
+    `<br><span style="opacity:.5">${t('today')}</span>`;
+}
 
 document.getElementById('localUsernameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLocalLogin();
@@ -619,7 +1030,7 @@ function setStrat(btn, s) {
 }
 
 // ─── Debts ────────────────────────────────────────────────────────────────────
-function addDebt(name='', balance='', rate='') {
+function addDebt(name='', balance='', rate='', minPayment='') {
   debtId++;
   const id = debtId;
   const colorIdx = document.querySelectorAll('.debt-card').length;
@@ -629,9 +1040,10 @@ function addDebt(name='', balance='', rate='') {
   el.style.borderLeftColor = color;
   el.innerHTML = `
     <div class="dc-row">
-      <div class="inp-wrap dn"><input type="text" id="dn-${id}" placeholder="负债名称" value="${name}"></div>
-      <div class="inp-wrap db"><span class="inp-pre">$</span><input type="number" id="db-${id}" class="pl" placeholder="余额" min="0" value="${balance}" oninput="updateDebtTotal()"></div>
-      <div class="inp-wrap dr"><input type="number" id="dr-${id}" class="pr" placeholder="利率" min="0" max="100" step="0.01" value="${rate}"><span class="inp-suf">%</span></div>
+      <div class="inp-wrap dn"><input type="text" id="dn-${id}" placeholder="${t('debtName')}" value="${name}"></div>
+      <div class="inp-wrap db"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="db-${id}" class="pl" placeholder="${t('balance')}" min="0" value="${balance}" oninput="updateDebtTotal()"></div>
+      <div class="inp-wrap dr"><input type="number" id="dr-${id}" class="pr" placeholder="${t('rate')}" min="0" max="100" step="0.01" value="${rate}"><span class="inp-suf">%</span></div>
+      <div class="inp-wrap dm"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="dm-${id}" class="pl" placeholder="${t('minPayment')}" min="0" value="${minPayment}"></div>
       <button class="rm-btn" onclick="removeDebt(${id})">✕</button>
     </div>`;
   document.getElementById('debtList').appendChild(el);
@@ -644,12 +1056,12 @@ function removeDebt(id) {
 }
 
 function updateDebtTotal() {
-  let t = 0;
+  let t2 = 0;
   document.querySelectorAll('.debt-card').forEach(el => {
     const id = el.id.replace('debt-','');
-    t += parseFloat(document.getElementById(`db-${id}`)?.value) || 0;
+    t2 += parseFloat(document.getElementById(`db-${id}`)?.value) || 0;
   });
-  document.getElementById('dtVal').textContent = t > 0 ? '$'+t.toLocaleString() : '—';
+  document.getElementById('dtVal').textContent = t2 > 0 ? currSym+t2.toLocaleString() : '—';
 }
 
 function getDebts() {
@@ -657,16 +1069,17 @@ function getDebts() {
     const id = el.id.replace('debt-','');
     return {
       id, idx: i,
-      name:    document.getElementById(`dn-${id}`).value || `债务 ${id}`,
-      balance: parseFloat(document.getElementById(`db-${id}`).value) || 0,
-      rate:    parseFloat(document.getElementById(`dr-${id}`).value) || 0,
-      color:   DEBT_COLORS[i % DEBT_COLORS.length],
+      name:       document.getElementById(`dn-${id}`).value || `${t('debtList')} ${id}`,
+      balance:    parseFloat(document.getElementById(`db-${id}`).value) || 0,
+      rate:       parseFloat(document.getElementById(`dr-${id}`).value) || 0,
+      minPayment: parseFloat(document.getElementById(`dm-${id}`).value) || 0,
+      color:      DEBT_COLORS[i % DEBT_COLORS.length],
     };
   }).filter(d => d.balance > 0);
 }
 
 // ─── Phases ───────────────────────────────────────────────────────────────────
-function addPhase(dateVal='', incVal='', expVal='', incFreq='monthly') {
+function addPhase(dateVal='', incVal='', expVal='', incFreq='monthly', expFreq='monthly') {
   phaseId++;
   const id = phaseId;
   const el = document.createElement('div');
@@ -674,18 +1087,26 @@ function addPhase(dateVal='', incVal='', expVal='', incFreq='monthly') {
   el.innerHTML = `
     <div class="pc-row">
       <div class="pc-from">
-        <span class="pc-lbl">从</span>
+        <span class="pc-lbl pc-lbl-from">${t('phaseFrom')}</span>
         <input type="month" id="pc-date-${id}" value="${dateVal}" style="flex:0 0 128px">
-        <span class="pc-lbl">起</span>
+        <span class="pc-lbl pc-lbl-to">${t('phaseTo')}</span>
       </div>
       <div style="display:flex;gap:5px;flex:1.4;min-width:140px">
-        <div class="inp-wrap" style="flex:1"><span class="inp-pre">$</span><input type="number" id="pc-inc-${id}" class="pl" placeholder="收入" min="0" value="${incVal}"></div>
+        <div class="inp-wrap" style="flex:1"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="pc-inc-${id}" class="pl" placeholder="${t('phaseIncome')}" min="0" value="${incVal}"></div>
         <select id="pc-incfreq-${id}" class="freq-sel" style="flex:0 0 68px">
-          <option value="monthly"  ${incFreq==='monthly' ?'selected':''}>/ 月</option>
-          <option value="biweekly" ${incFreq==='biweekly'?'selected':''}>/ 两周</option>
+          <option value="monthly"  ${incFreq==='monthly' ?'selected':''}>${t('perMonth')}</option>
+          <option value="biweekly" ${incFreq==='biweekly'?'selected':''}>${t('perBiweek')}</option>
         </select>
       </div>
-      <div class="inp-wrap" style="flex:1;min-width:88px"><span class="inp-pre">$</span><input type="number" id="pc-exp-${id}" class="pl" placeholder="月支出" min="0" value="${expVal}"></div>
+      <div style="display:flex;gap:5px;flex:1;min-width:88px">
+        <div class="inp-wrap" style="flex:1"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="pc-exp-${id}" class="pl" placeholder="${t('phaseExpense')}" min="0" value="${expVal}"></div>
+        <select id="pc-expfreq-${id}" class="freq-sel" style="flex:0 0 68px">
+          <option value="monthly"      ${expFreq==='monthly'     ?'selected':''}>${t('perMonth')}</option>
+          <option value="biweekly"     ${expFreq==='biweekly'    ?'selected':''}>${t('perBiweek')}</option>
+          <option value="semi-annual"  ${expFreq==='semi-annual' ?'selected':''}>${t('perSemiAnnual')}</option>
+          <option value="annual"       ${expFreq==='annual'      ?'selected':''}>${t('perAnnual')}</option>
+        </select>
+      </div>
       <button class="rm-btn" onclick="removePhase(${id})">✕</button>
     </div>`;
   document.getElementById('phaseList').appendChild(el);
@@ -701,7 +1122,8 @@ function getPhases() {
     income:     parseFloat(document.getElementById('init-income').value) || 0,
     incomeFreq: document.getElementById('init-income-freq').value || 'monthly',
     expenses:   parseFloat(document.getElementById('init-exp').value)    || 0,
-    label: '初始',
+    expFreq:    document.getElementById('init-exp-freq').value || 'monthly',
+    label: t('initialLabel'),
   };
   const changes = [];
   document.querySelectorAll('.phase-change').forEach(el => {
@@ -714,7 +1136,8 @@ function getPhases() {
       income:     parseFloat(document.getElementById(`pc-inc-${id}`).value) || 0,
       incomeFreq: document.getElementById(`pc-incfreq-${id}`).value || 'monthly',
       expenses:   parseFloat(document.getElementById(`pc-exp-${id}`).value) || 0,
-      label: `${y}/${mo}月`,
+      expFreq:    document.getElementById(`pc-expfreq-${id}`).value || 'monthly',
+      label: currentLang === 'zh' ? `${y}/${mo}月` : `${y}/${mo}`,
     });
   });
   changes.sort((a,b) => a.ym - b.ym);
@@ -723,6 +1146,15 @@ function getPhases() {
 
 function monthlyIncome(phase) {
   return phase.incomeFreq === 'biweekly' ? phase.income * 26/12 : phase.income;
+}
+
+function monthlyExpense(phase) {
+  switch (phase.expFreq || 'monthly') {
+    case 'biweekly':    return phase.expenses * 26/12;
+    case 'semi-annual': return phase.expenses / 6;
+    case 'annual':      return phase.expenses / 12;
+    default:            return phase.expenses;
+  }
 }
 
 // Count how many bi-weekly paydays fall in a given calendar month
@@ -764,20 +1196,20 @@ function addItem(name='', type='income', amount='', freq='monthly', date='') {
   el.innerHTML = `
     <div class="extra-hd">
       <div class="type-toggle">
-        <button class="tbtn ${type==='income'?'on-income':''}"  id="tb-inc-${id}" onclick="setItemType(${id},'income')">收入</button>
-        <button class="tbtn ${type==='expense'?'on-expense':''}" id="tb-exp-${id}" onclick="setItemType(${id},'expense')">支出</button>
+        <button class="tbtn ${type==='income'?'on-income':''}"  id="tb-inc-${id}" onclick="setItemType(${id},'income')">${t('income')}</button>
+        <button class="tbtn ${type==='expense'?'on-expense':''}" id="tb-exp-${id}" onclick="setItemType(${id},'expense')">${t('expense')}</button>
       </div>
       <button class="rm-btn" onclick="rmItem(${id})">✕</button>
     </div>
     <div class="extra-fields">
-      <div class="full"><input type="text" id="en-${id}" placeholder="项目名称（如：年终奖、租金收入）" value="${name}"></div>
-      <div class="inp-wrap" style="position:relative"><span class="inp-pre">$</span><input type="number" id="ea-${id}" class="pl" placeholder="金额" min="0" value="${amount}"></div>
+      <div class="full"><input type="text" id="en-${id}" placeholder="${t('itemName')}" value="${name}"></div>
+      <div class="inp-wrap" style="position:relative"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="ea-${id}" class="pl" placeholder="${t('amount')}" min="0" value="${amount}"></div>
       <select id="ef-${id}" onchange="freqChange(${id})">
-        <option value="monthly"     ${freq==='monthly'?'selected':''}>每月</option>
-        <option value="biweekly"    ${freq==='biweekly'?'selected':''}>每两周</option>
-        <option value="semi-annual" ${freq==='semi-annual'?'selected':''}>每半年</option>
-        <option value="annual"      ${freq==='annual'?'selected':''}>每年</option>
-        <option value="custom"      ${freq==='custom'?'selected':''}>自定义日期（一次性）</option>
+        <option value="monthly"     ${freq==='monthly'?'selected':''}>${t('everyMonth')}</option>
+        <option value="biweekly"    ${freq==='biweekly'?'selected':''}>${t('everyBiweek')}</option>
+        <option value="semi-annual" ${freq==='semi-annual'?'selected':''}>${t('everySemiAnnual')}</option>
+        <option value="annual"      ${freq==='annual'?'selected':''}>${t('everyAnnual')}</option>
+        <option value="custom"      ${freq==='custom'?'selected':''}>${t('customDate')}</option>
       </select>
       <div class="custom-row ${freq==='custom'?'show':''}" id="ecd-${id}">
         <input type="date" id="ed-${id}" style="width:100%" value="${date}">
@@ -801,7 +1233,7 @@ function getItems() {
   return [...document.querySelectorAll('.extra-item')].map(el => {
     const id = el.id.replace('ei-','');
     return {
-      id, name: document.getElementById(`en-${id}`).value || `项目${id}`,
+      id, name: document.getElementById(`en-${id}`).value || `${t('extraItems')}${id}`,
       type:      el.dataset.type,
       amount:    parseFloat(document.getElementById(`ea-${id}`).value) || 0,
       frequency: document.getElementById(`ef-${id}`).value,
@@ -818,20 +1250,20 @@ function simulate(debtsInput, phases, items, strat, paydayRef) {
   else if (strat === 'snowball')  debts.sort((a,b) => a.balance - b.balance);
 
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); // m=1 → current month
+  const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const usedCustom = new Set();
   const payoffMap  = {};
   let totalInterest = 0;
   const history = [];
 
   for (let m = 1; m <= SIM_MAX; m++) {
-    const curDate  = new Date(startDate.getFullYear(), startDate.getMonth() + m, 1);
+    const curDate    = new Date(startDate.getFullYear(), startDate.getMonth() + m, 1);
     const phase      = phaseAt(phases, curDate);
     const incMo      = incomeForMonth(phase, curDate, paydayRef);
     const paydayCnt  = (phase.incomeFreq === 'biweekly' && paydayRef)
                          ? countBiweeklyInMonth(curDate.getFullYear(), curDate.getMonth(), paydayRef)
                          : null;
-    const fixedNet   = incMo - phase.expenses;
+    const fixedNet   = incMo - monthlyExpense(phase);
 
     // Apply interest to each debt
     let intMonth = 0;
@@ -857,8 +1289,8 @@ function simulate(debtsInput, phases, items, strat, paydayRef) {
       else if (item.frequency === 'semi-annual' && m%6  === 0)   c = item.amount * sign;
       else if (item.frequency === 'annual'      && m%12 === 0)   c = item.amount * sign;
       else if (item.frequency === 'custom' && item.date && !usedCustom.has(item.id)) {
-        const d = new Date(item.date + 'T00:00:00');
-        if (d.getFullYear()===curDate.getFullYear() && d.getMonth()===curDate.getMonth()) {
+        const d2 = new Date(item.date + 'T00:00:00');
+        if (d2.getFullYear()===curDate.getFullYear() && d2.getMonth()===curDate.getMonth()) {
           c = item.amount * sign; usedCustom.add(item.id);
         }
       }
@@ -867,29 +1299,53 @@ function simulate(debtsInput, phases, items, strat, paydayRef) {
 
     const totalPay = fixedNet + extraNet;
 
-    // Apply payment – handles both positive (paying down) and negative (deficit) months
+    // Apply payment with minimum payment logic
     if (totalPay >= 0) {
+      const activeDebts = debts.filter(d => d.balance >= 0.005);
+      const totalMins   = activeDebts.reduce((s, d) => s + Math.min(d.minPayment || 0, d.balance), 0);
+
       if (strat === 'prorata') {
-        const tot = debts.reduce((s,d)=>s+Math.max(0,d.balance),0);
+        const tot = activeDebts.reduce((s,d) => s + d.balance, 0);
         if (tot > 0) {
-          for (const d of debts) {
-            if (d.balance < 0.005) continue;
-            const pay = Math.min(totalPay*(d.balance/tot), d.balance);
+          for (const d of activeDebts) {
+            const pay = Math.min(totalPay * (d.balance / tot), d.balance);
             d.balance -= pay;
-            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id]={m,date:new Date(curDate)};
+            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
           }
         }
       } else {
-        let rem = totalPay;
-        for (const d of debts) {
-          if (rem < 0.005) break;
-          if (d.balance < 0.005) continue;
-          const pay = Math.min(rem, d.balance); d.balance -= pay; rem -= pay;
-          if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id]={m,date:new Date(curDate)};
+        if (totalPay < totalMins) {
+          // Not enough to cover all minimums – distribute proportionally
+          const tot = activeDebts.reduce((s,d) => s + (d.minPayment || 0), 0);
+          for (const d of activeDebts) {
+            if (d.balance < 0.005) continue;
+            const share = tot > 0 ? (d.minPayment || 0) / tot : 1 / activeDebts.length;
+            const pay = Math.min(totalPay * share, d.balance);
+            d.balance -= pay;
+            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+          }
+        } else {
+          // 1) Pay minimums to all active debts first
+          let rem = totalPay;
+          for (const d of activeDebts) {
+            if (d.balance < 0.005) continue;
+            const minPay = Math.min(d.minPayment || 0, d.balance);
+            d.balance -= minPay;
+            rem -= minPay;
+            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+          }
+          // 2) Apply surplus to priority debt
+          for (const d of debts) {
+            if (rem < 0.005) break;
+            if (d.balance < 0.005) continue;
+            const pay = Math.min(rem, d.balance);
+            d.balance -= pay; rem -= pay;
+            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+          }
         }
       }
     } else {
-      // Deficit month: add shortfall to debt (borrowing to cover expenses)
+      // Deficit month: add shortfall to debt
       const deficit = -totalPay;
       if (strat === 'prorata') {
         const tot = debts.reduce((s,d)=>s+Math.max(0,d.balance),0);
@@ -924,9 +1380,9 @@ function calculate() {
   const phases = getPhases();
   const items  = getItems();
 
-  if (debts.length === 0) { showWarn('请至少输入一笔负债金额。'); return; }
+  if (debts.length === 0) { showWarn(t('errNoDebt')); return; }
   const totalDebt = debts.reduce((s,d)=>s+d.balance,0);
-  if (totalDebt <= 0) { showWarn('请输入有效的负债余额。'); return; }
+  if (totalDebt <= 0) { showWarn(t('errNoBalance')); return; }
 
   hideWarn();
 
@@ -936,11 +1392,11 @@ function calculate() {
   const { history, totalInterest, payoffMap } = simulate(debts, phases, items, strategy, paydayRef);
   const last = history[history.length - 1];
 
-  // Check if simulation hit the 50-year cap without converging
   if (last.balance > 1 && last.m >= SIM_MAX) {
     showWarn(
-      `⚠️ 在 ${SIM_MAX} 个月（约 50 年）内无法还清债务，期末剩余约 $${Math.round(last.balance).toLocaleString()}。` +
-      `请检查各阶段的收入支出设置，或添加额外收入来源。`
+      '⚠️ ' + t('simCapWarn')
+        .replace('%d', SIM_MAX)
+        .replace('%s', currSym+Math.round(last.balance).toLocaleString())
     );
     return;
   }
@@ -951,17 +1407,23 @@ function calculate() {
 
 // ─── Render results ───────────────────────────────────────────────────────────
 function renderResults(history, debts, totalDebt, totalInterest, phases, items, payoffMap) {
+  // Store for re-render on currency change
+  window._lastRenderArgs = {history, debts, totalDebt, totalInterest, phases, items, payoffMap};
+
   const last   = history[history.length - 1];
   const months = last.m;
   const yrs    = Math.floor(months/12), mo = months%12;
+  const locale = currentLang === 'zh' ? 'zh-CN' : 'en-US';
 
-  document.getElementById('rDate').textContent    = last.date.toLocaleDateString('zh-CN',{year:'numeric',month:'long'});
-  document.getElementById('rDateSub').textContent = '距今预计';
-  document.getElementById('rMonths').textContent  = months+' 期';
-  const parts = []; if (yrs>0) parts.push(`${yrs} 年`); if (mo>0) parts.push(`${mo} 个月`);
-  document.getElementById('rYrsMo').textContent   = parts.join(' ') || '< 1 个月';
-  document.getElementById('rInterest').textContent= '$'+Math.round(totalInterest).toLocaleString();
-  document.getElementById('rIntPct').textContent  = `约占本金 ${(totalInterest/totalDebt*100).toFixed(1)}%`;
+  document.getElementById('rDate').textContent    = last.date.toLocaleDateString(locale,{year:'numeric',month:'long'});
+  document.getElementById('rDateSub').textContent = t('fromNow');
+  document.getElementById('rMonths').textContent  = months+(currentLang==='zh'?' 期':' mo');
+  const parts = [];
+  if (yrs>0) parts.push(currentLang==='zh'?`${yrs} 年`:`${yrs}y`);
+  if (mo>0)  parts.push(currentLang==='zh'?`${mo} 个月`:`${mo}mo`);
+  document.getElementById('rYrsMo').textContent   = parts.join(' ') || (currentLang==='zh'?'< 1 个月':'< 1mo');
+  document.getElementById('rInterest').textContent= currSym+Math.round(totalInterest).toLocaleString();
+  document.getElementById('rIntPct').textContent  = t('approxPrincipal')+` ${(totalInterest/totalDebt*100).toFixed(1)}%`;
 
   // Per-debt breakdown
   const pbPanel = document.getElementById('pbPanel');
@@ -978,11 +1440,11 @@ function renderResults(history, debts, totalDebt, totalInterest, phases, items, 
         <div class="pb-rank" style="color:${debt.color};border-color:${debt.color};background:${debt.color}1a">${i+1}</div>
         <div class="pb-info">
           <div class="pb-name">${debt.name}</div>
-          <div class="pb-meta">年利率 ${debt.rate.toFixed(2)}%  ·  本金 $${Math.round(debt.balance).toLocaleString()}</div>
+          <div class="pb-meta">${t('annualRate')} ${debt.rate.toFixed(2)}%  ·  ${t('principal')} ${currSym}${Math.round(debt.balance).toLocaleString()}</div>
         </div>
         <div class="pb-right">
-          <div class="pb-date" style="color:${debt.color}">${po.date.toLocaleDateString('zh-CN',{year:'numeric',month:'long'})}</div>
-          <div class="pb-mos">${po.m <= 1 ? '当月还清' : `第 ${po.m} 期还清`}</div>
+          <div class="pb-date" style="color:${debt.color}">${po.date.toLocaleDateString(locale,{year:'numeric',month:'long'})}</div>
+          <div class="pb-mos">${po.m <= 1 ? t('paidThisMonth') : t('paidAtPeriod').replace('%d', po.m)}</div>
         </div>`;
       pbGrid.appendChild(el);
     });
@@ -991,31 +1453,34 @@ function renderResults(history, debts, totalDebt, totalInterest, phases, items, 
   // Cash flow summary
   const initPhase    = phases[0];
   const initIncMo    = monthlyIncome(initPhase);
-  const fixedNet     = initIncMo - initPhase.expenses;
-  const incFreqLabel = initPhase.incomeFreq === 'biweekly' ? '（×26/12）' : '';
+  const initExpMo    = monthlyExpense(initPhase);
+  const fixedNet     = initIncMo - initExpMo;
+  const incFreqLabel = initPhase.incomeFreq === 'biweekly' ? (currentLang==='zh'?'（×26/12）':' (×26/12)') : '';
   const avgExtra  = items.reduce((s,it)=>{
     if (it.amount<=0) return s;
     const sign = it.type==='income'?1:-1;
-    let mo=0;
-    if      (it.frequency==='monthly')     mo=it.amount;
-    else if (it.frequency==='biweekly')    mo=it.amount*26/12;
-    else if (it.frequency==='semi-annual') mo=it.amount/6;
-    else if (it.frequency==='annual')      mo=it.amount/12;
-    return s+mo*sign;
+    let moval=0;
+    if      (it.frequency==='monthly')     moval=it.amount;
+    else if (it.frequency==='biweekly')    moval=it.amount*26/12;
+    else if (it.frequency==='semi-annual') moval=it.amount/6;
+    else if (it.frequency==='annual')      moval=it.amount/12;
+    return s+moval*sign;
   },0);
-  const phaseNote = phases.length>1 ? `（含 ${phases.length-1} 个变动阶段）` : '';
+  const phaseNote = phases.length>1
+    ? t('withChanges').replace('%d', phases.length-1)
+    : '';
   const flowItems = document.getElementById('flowItems');
   flowItems.innerHTML='';
   [
-    {lbl:'初始月薪（月均）'+incFreqLabel, val:initIncMo,          cls:'pos'},
-    {lbl:'初始月固定支出',               val:-initPhase.expenses, cls:'neg'},
-    {lbl:'初始月净额',                   val:fixedNet,            cls:fixedNet>=0?'pos':'neg'},
-    {lbl:'额外月均净额',                  val:avgExtra,            cls:avgExtra>=0?'pos':'neg'},
-    {lbl:'月均还款能力'+phaseNote,        val:fixedNet+avgExtra,   cls:'neu'},
+    {lbl: t('initMonthly')+incFreqLabel, val:initIncMo,      cls:'pos'},
+    {lbl: t('initMonthlyExp'),            val:-initExpMo,     cls:'neg'},
+    {lbl: t('initMonthlyNet'),            val:fixedNet,       cls:fixedNet>=0?'pos':'neg'},
+    {lbl: t('extraMonthlyNet'),           val:avgExtra,       cls:avgExtra>=0?'pos':'neg'},
+    {lbl: t('avgPayCap')+phaseNote,       val:fixedNet+avgExtra, cls:'neu'},
   ].forEach(f=>{
     const d=document.createElement('div'); d.className='fi';
     d.innerHTML=`<div class="fi-lbl">${f.lbl}</div>
-      <div class="fi-val ${f.cls}">${f.val>=0?'+':'-'}$${Math.abs(Math.round(f.val)).toLocaleString()}</div>`;
+      <div class="fi-val ${f.cls}">${f.val>=0?'+':'-'}${currSym}${Math.abs(Math.round(f.val)).toLocaleString()}</div>`;
     flowItems.appendChild(d);
   });
 
@@ -1042,7 +1507,8 @@ function renderChart(history, debts) {
     const step=Math.ceil(history.length/120);
     data=history.filter((_,i)=>i%step===0||i===history.length-1);
   }
-  const labels = data.map(h=>h.date.toLocaleDateString('zh-CN',{year:'numeric',month:'short'}));
+  const locale = currentLang === 'zh' ? 'zh-CN' : 'en-US';
+  const labels = data.map(h=>h.date.toLocaleDateString(locale,{year:'numeric',month:'short'}));
   const ctx = document.getElementById('balChart').getContext('2d');
   const datasets = [];
   if (debts.length>1) {
@@ -1058,7 +1524,7 @@ function renderChart(history, debts) {
   const grad=ctx.createLinearGradient(0,0,0,256);
   grad.addColorStop(0,'rgba(201,150,58,.28)'); grad.addColorStop(1,'rgba(201,150,58,0)');
   datasets.push({
-    label:debts.length>1?'债务总额':'债务余额', order:0,
+    label: debts.length>1 ? t('totalDebtLabel') : t('debtBalLabel'), order:0,
     data:data.map(h=>Math.round(h.balance)),
     borderColor:TOTAL_COLOR, backgroundColor:grad, borderWidth:2.5, fill:true, tension:.35,
     pointRadius:data.length>48?0:3, pointHoverRadius:5,
@@ -1073,11 +1539,11 @@ function renderChart(history, debts) {
         legend:{display:debts.length>1,labels:{color:'#7a8fa3',font:{family:'IBM Plex Mono',size:10},padding:14,usePointStyle:true,pointStyleWidth:10}},
         tooltip:{backgroundColor:'#0f1622',borderColor:'#1b2b3a',borderWidth:1,titleColor:'#7a8fa3',bodyColor:'#d8e2ee',padding:12,
           titleFont:{family:'IBM Plex Mono',size:11},bodyFont:{family:'IBM Plex Mono',size:11},
-          callbacks:{label:ctx=>` ${ctx.dataset.label}: $${ctx.raw.toLocaleString()}`}},
+          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${currSym}${ctx.raw.toLocaleString()}`}},
       },
       scales:{
         x:{grid:{color:'rgba(27,43,58,.6)'},border:{color:'#1b2b3a'},ticks:{color:'#3d5060',font:{family:'IBM Plex Mono',size:9},maxTicksLimit:10}},
-        y:{grid:{color:'rgba(27,43,58,.6)'},border:{color:'#1b2b3a'},ticks:{color:'#3d5060',font:{family:'IBM Plex Mono',size:9},callback:v=>v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v}},
+        y:{grid:{color:'rgba(27,43,58,.6)'},border:{color:'#1b2b3a'},ticks:{color:'#3d5060',font:{family:'IBM Plex Mono',size:9},callback:v=>v>=1000?currSym+(v/1000).toFixed(0)+'k':currSym+v}},
       }
     }
   });
@@ -1085,7 +1551,10 @@ function renderChart(history, debts) {
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 function renderTable(history) {
-  const tbody=document.getElementById('tblBody'); tbody.innerHTML='';
+  const tbody=document.getElementById('tblBody');
+  tbody._lastHistory = history;
+  tbody.innerHTML='';
+  const locale = currentLang === 'zh' ? 'zh-CN' : 'en-US';
   history.forEach(h=>{
     const tr=document.createElement('tr');
     if (h.paydayCnt === 3) tr.className = 'triple-pay';
@@ -1093,15 +1562,15 @@ function renderTable(history) {
     const redC=h.actualRed>=0?'c-pos':'c-neg';
     const balC=h.balance<10000?'c-gold':'c-dim';
     const phLbl = h.paydayCnt === 3
-      ? `<span style="color:var(--blue)">${h.phaseLabel}</span> <span style="color:var(--blue);font-size:.65rem">3薪</span>`
+      ? `<span style="color:var(--blue)">${h.phaseLabel}</span> <span style="color:var(--blue);font-size:.65rem">${t('triplePayLabel')}</span>`
       : `<span class="c-phase">${h.phaseLabel}</span>`;
     tr.innerHTML=`
-      <td>${h.date.toLocaleDateString('zh-CN',{year:'numeric',month:'short'})}</td>
+      <td>${h.date.toLocaleDateString(locale,{year:'numeric',month:'short'})}</td>
       <td>${phLbl}</td>
-      <td class="${payC}">${h.totalPay>=0?'+':'-'}$${Math.abs(Math.round(h.totalPay)).toLocaleString()}</td>
-      <td class="c-neg">-$${Math.round(h.interest).toLocaleString()}</td>
-      <td class="${redC}">${h.actualRed>=0?'-':'+'}$${Math.abs(Math.round(h.actualRed)).toLocaleString()}</td>
-      <td class="${balC}">$${Math.round(h.balance).toLocaleString()}</td>`;
+      <td class="${payC}">${h.totalPay>=0?'+':'-'}${currSym}${Math.abs(Math.round(h.totalPay)).toLocaleString()}</td>
+      <td class="c-neg">-${currSym}${Math.round(h.interest).toLocaleString()}</td>
+      <td class="${redC}">${h.actualRed>=0?'-':'+'}${currSym}${Math.abs(Math.round(h.actualRed)).toLocaleString()}</td>
+      <td class="${balC}">${currSym}${Math.round(h.balance).toLocaleString()}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1129,22 +1598,27 @@ function toast(msg, type='success') {
 function collectFormData() {
   return {
     strategy,
+    lang:           currentLang,
+    currency:       document.getElementById('currencySelect').value,
     initIncome:     parseFloat(document.getElementById('init-income').value) || 0,
     initIncomeFreq: document.getElementById('init-income-freq').value || 'monthly',
     initExpenses:   parseFloat(document.getElementById('init-exp').value)   || 0,
+    initExpFreq:    document.getElementById('init-exp-freq').value || 'monthly',
     paydayRef:      document.getElementById('payday-ref').value || '',
     debts: [...document.querySelectorAll('.debt-card')].map(el => {
       const id=el.id.replace('debt-','');
       return { name:document.getElementById(`dn-${id}`).value,
                balance:parseFloat(document.getElementById(`db-${id}`).value)||0,
-               rate:parseFloat(document.getElementById(`dr-${id}`).value)||0 };
+               rate:parseFloat(document.getElementById(`dr-${id}`).value)||0,
+               minPayment:parseFloat(document.getElementById(`dm-${id}`).value)||0 };
     }),
     phases: [...document.querySelectorAll('.phase-change')].map(el => {
       const id=el.id.replace('pc-','');
       return { date:document.getElementById(`pc-date-${id}`).value,
                income:parseFloat(document.getElementById(`pc-inc-${id}`).value)||0,
                incomeFreq:document.getElementById(`pc-incfreq-${id}`).value||'monthly',
-               expenses:parseFloat(document.getElementById(`pc-exp-${id}`).value)||0 };
+               expenses:parseFloat(document.getElementById(`pc-exp-${id}`).value)||0,
+               expFreq:document.getElementById(`pc-expfreq-${id}`).value||'monthly' };
     }),
     items: [...document.querySelectorAll('.extra-item')].map(el => {
       const id=el.id.replace('ei-','');
@@ -1164,38 +1638,58 @@ function restoreFormData(data) {
   document.querySelectorAll('.stbtn').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-strategy')===strategy);
   });
+  // Language
+  if (data.lang && (data.lang === 'zh' || data.lang === 'en')) {
+    currentLang = data.lang;
+    localStorage.setItem('dc_lang', currentLang);
+  }
+  // Currency
+  if (data.currency) {
+    const sel = document.getElementById('currencySelect');
+    sel.value = data.currency;
+    setCurrency(data.currency);
+  }
   // Init
   document.getElementById('init-income').value      = data.initIncome      || '';
   document.getElementById('init-income-freq').value = data.initIncomeFreq  || 'monthly';
   document.getElementById('init-exp').value         = data.initExpenses    || '';
+  document.getElementById('init-exp-freq').value    = data.initExpFreq     || 'monthly';
   document.getElementById('payday-ref').value       = data.paydayRef       || '';
   // Debts
   document.getElementById('debtList').innerHTML=''; debtId=0;
   const debts = data.debts||[];
   if (debts.length===0) addDebt();
-  else debts.forEach(d=>addDebt(d.name, d.balance||'', d.rate||''));
+  else debts.forEach(d=>addDebt(d.name, d.balance||'', d.rate||'', d.minPayment||''));
   // Phases
   document.getElementById('phaseList').innerHTML=''; phaseId=0;
-  (data.phases||[]).forEach(p=>addPhase(p.date||'', p.income||'', p.expenses||'', p.incomeFreq||'monthly'));
+  (data.phases||[]).forEach(p=>addPhase(p.date||'', p.income||'', p.expenses||'', p.incomeFreq||'monthly', p.expFreq||'monthly'));
   // Items
   document.getElementById('extraList').innerHTML=''; itemId=0;
   (data.items||[]).forEach(it=>addItem(it.name||'', it.type||'income', it.amount||'', it.frequency||'monthly', it.date||''));
   updateDebtTotal();
+  applyLang();
 }
 
 // ─── User bar update ──────────────────────────────────────────────────────────
-function updateUserBar(displayName, savedAt, mode) {
-  document.getElementById('ubName').textContent = displayName || '用户';
+function updateUserBar(displayName, savedAt2, mode) {
+  document.getElementById('ubName').textContent = displayName || (currentLang==='zh'?'用户':'User');
   const el = document.getElementById('ubTime');
-  el.textContent = savedAt
-    ? `已保存 ${new Date(savedAt).toLocaleDateString('zh-CN',{month:'short',day:'numeric'})} ${new Date(savedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`
-    : '尚未保存';
-  // Cloud users: show 退出; local users: show 切换用户
+  if (savedAt2) {
+    const locale = currentLang === 'zh' ? 'zh-CN' : 'en-US';
+    el.textContent = t('savedAt') + ' ' +
+      new Date(savedAt2).toLocaleDateString(locale,{month:'short',day:'numeric'}) + ' ' +
+      new Date(savedAt2).toLocaleTimeString(locale,{hour:'2-digit',minute:'2-digit'});
+    el.dataset.raw = '';
+  } else {
+    el.textContent = t('notSaved');
+    el.dataset.raw = 'notSaved';
+  }
+  // Cloud users: show sign out; local users: show switch user
   const btn = document.getElementById('ubActionBtn');
   if (mode === 'cloud') {
-    btn.textContent = '退出'; btn.onclick = doSignOut;
+    btn.textContent = t('signOut'); btn.onclick = doSignOut;
   } else {
-    btn.textContent = '切换用户'; btn.onclick = () => { showLoginModal(); showLocalStep(); };
+    btn.textContent = t('switchUser'); btn.onclick = () => { showLoginModal(); showLocalStep(); };
   }
   document.getElementById('userBar').style.display = 'flex';
 }
@@ -1219,7 +1713,6 @@ function showStep1() {
 function showLocalStep() {
   document.getElementById('modalStep1').style.display = 'none';
   document.getElementById('modalStep2').style.display = '';
-  // Populate existing local users
   const users   = getLocalUsers();
   const section = document.getElementById('localExistingSection');
   const chips   = document.getElementById('localUserChips');
@@ -1252,11 +1745,11 @@ function loginAsLocal(username) {
   if (data) {
     restoreFormData(data);
     updateUserBar(username, data.savedAt, 'local');
-    toast('已加载您的数据 ✓');
+    toast(t('dataLoaded'));
   } else {
     updateUserBar(username, null, 'local');
     if (!document.querySelector('.debt-card')) addDebt();
-    toast('已创建本机用户档案');
+    toast(t('userCreated'));
   }
   hideLoginModal();
 }
@@ -1266,24 +1759,24 @@ async function manualSave() {
   if (!currentUser && !localUser) { showLoginModal(); return; }
   const data = collectFormData();
   await saveProfile(data);
-  const name = auth.currentUser?.displayName || auth.currentUser?.email || localUser || '用户';
+  const name = auth.currentUser?.displayName || auth.currentUser?.email || localUser || (currentLang==='zh'?'用户':'User');
   const mode = currentUser ? 'cloud' : 'local';
   updateUserBar(name, data.savedAt, mode);
-  toast('数据已保存 ✓');
+  toast(t('dataSaved'));
 }
 
 async function autoSave() {
   if (!currentUser && !localUser) return;
   const data = collectFormData();
   await saveProfile(data);
-  const name = auth.currentUser?.displayName || auth.currentUser?.email || localUser || '用户';
+  const name = auth.currentUser?.displayName || auth.currentUser?.email || localUser || (currentLang==='zh'?'用户':'User');
   const mode = currentUser ? 'cloud' : 'local';
   updateUserBar(name, data.savedAt, mode);
 }
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-// Firebase onAuthStateChanged handles user restoration automatically.
-// Add one debt card so the UI isn't empty while auth resolves.
+initCurrency();
+applyLang();
 addDebt();
 
 // ─── Service Worker Registration ──────────────────────────────────────────────
