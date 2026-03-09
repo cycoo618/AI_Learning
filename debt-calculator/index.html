@@ -324,6 +324,20 @@
 <!-- ══ Toast ══ -->
 <div class="toast" id="toast"></div>
 
+<!-- ══ Currency Conversion Modal ══ -->
+<div class="modal-overlay" id="currencyModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-icon" style="font-size:1.4rem">⟳</div>
+    <div class="modal-title" data-i18n="curModalTitle">更换货币</div>
+    <div class="modal-sub" id="currencyModalMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn-primary" onclick="confirmCurrencyConvert(true)" data-i18n="curModalYes">是，换算金额</button>
+      <button class="modal-btn-ghost"   onclick="confirmCurrencyConvert(false)" data-i18n="curModalNo">否，仅更换符号</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);margin-top:10px;text-align:center" data-i18n="curModalNote">汇率为近似参考值，不代表实时汇率</div>
+  </div>
+</div>
+
 <!-- ══ Login Modal ══ -->
 <div class="modal-overlay on" id="loginModal">
   <div class="modal-box">
@@ -675,6 +689,13 @@ const I18N = {
     debtBalLabel:     '债务余额',
     triplePayLabel:   '3薪',
     today:            '今日计算基准日',
+    curModalTitle:    '更换货币',
+    curModalMsg1:     '从',
+    curModalMsg2:     '，是否同时换算所有已输入的金额？',
+    curModalYes:      '是，按汇率换算金额',
+    curModalNo:       '否，仅更换货币符号',
+    curModalNote:     '汇率为近似参考值，不代表实时汇率',
+    minPayNote:       '设置后每月优先保证此笔最低还款，剩余资金按策略分配',
   },
   en: {
     appTitle:         'Debt Payoff Calculator',
@@ -773,6 +794,13 @@ const I18N = {
     debtBalLabel:     'Debt balance',
     triplePayLabel:   '3-pay',
     today:            'Calculation base date',
+    curModalTitle:    'Change Currency',
+    curModalMsg1:     'Switch from',
+    curModalMsg2:     ' — convert all entered amounts at this rate?',
+    curModalYes:      'Yes, convert amounts',
+    curModalNo:       'No, symbol only',
+    curModalNote:     'Exchange rates are approximate and not real-time',
+    minPayNote:       'Guaranteed each month before surplus is distributed by strategy',
   }
 };
 
@@ -895,28 +923,81 @@ const CURRENCIES = [
 ];
 let currSym = '$';
 
+// Approximate rates relative to USD (reference: early 2025)
+const EXCHANGE_RATES = {
+  USD:1.00, CAD:1.38, AUD:1.55, EUR:0.92, GBP:0.79,
+  CNY:7.24, HKD:7.78, TWD:32.3, SGD:1.34, JPY:149.0,
+};
+let pendingCurrency = null; // {fromCode, toCode, sym}
+
 function setCurrency(code) {
   const cur = CURRENCIES.find(c => c.code === code);
   if (!cur) return;
-  currSym = cur.sym;
-  localStorage.setItem('dc_currency', code);
-  // Update all visible currency symbols
-  document.querySelectorAll('.cur-sym').forEach(el => { el.textContent = currSym; });
-  // Re-render results if visible
-  if (document.getElementById('results').classList.contains('on')) {
-    // Just re-render the table and results
-    const tblBody = document.getElementById('tblBody');
-    if (tblBody && tblBody._lastHistory) {
-      renderTable(tblBody._lastHistory);
-    }
-    // Re-render summary values if available
-    if (window._lastRenderArgs) {
-      const a = window._lastRenderArgs;
-      renderResults(a.history, a.debts, a.totalDebt, a.totalInterest, a.phases, a.items, a.payoffMap);
-    }
+  const prevCode = localStorage.getItem('dc_currency') || 'USD';
+  if (prevCode === code) return;
+  // Check if any numeric inputs have values
+  const hasValues = [...document.querySelectorAll(
+    '#init-income,#init-exp,.debt-card input[type=number],.phase-change input[type=number],.extra-item input[type=number]'
+  )].some(el => parseFloat(el.value) > 0);
+  if (hasValues) {
+    pendingCurrency = {fromCode: prevCode, toCode: code, sym: cur.sym};
+    const fromRate = EXCHANGE_RATES[prevCode] || 1;
+    const toRate   = EXCHANGE_RATES[code]     || 1;
+    const ratio    = toRate / fromRate;
+    const prevName = CURRENCIES.find(c=>c.code===prevCode)?.name || prevCode;
+    document.getElementById('currencyModalMsg').textContent =
+      `${t('curModalMsg1')} ${prevName} → ${cur.name}（×${ratio.toFixed(4)}）${t('curModalMsg2')}`;
+    document.getElementById('currencyModal').classList.add('on');
+  } else {
+    applyCurrencySwitch(code, cur.sym, false, prevCode);
   }
-  // Update debt total
+}
+
+function confirmCurrencyConvert(doConvert) {
+  document.getElementById('currencyModal').classList.remove('on');
+  if (!pendingCurrency) return;
+  const {fromCode, toCode, sym} = pendingCurrency;
+  pendingCurrency = null;
+  applyCurrencySwitch(toCode, sym, doConvert, fromCode);
+}
+
+function applyCurrencySwitch(toCode, toSym, doConvert, fromCode) {
+  if (doConvert) {
+    const ratio = (EXCHANGE_RATES[toCode] || 1) / (EXCHANGE_RATES[fromCode] || 1);
+    // Convert all numeric inputs
+    document.querySelectorAll('.debt-card').forEach(el => {
+      const id = el.id.replace('debt-','');
+      ['db','dm'].forEach(p => {
+        const inp = document.getElementById(`${p}-${id}`);
+        if (inp?.value) inp.value = +(parseFloat(inp.value)*ratio).toFixed(2);
+      });
+    });
+    ['init-income','init-exp'].forEach(id => {
+      const inp = document.getElementById(id);
+      if (inp?.value) inp.value = +(parseFloat(inp.value)*ratio).toFixed(2);
+    });
+    document.querySelectorAll('.phase-change').forEach(el => {
+      const id = el.id.replace('pc-','');
+      [`pc-inc-${id}`,`pc-exp-${id}`].forEach(fid => {
+        const inp = document.getElementById(fid);
+        if (inp?.value) inp.value = +(parseFloat(inp.value)*ratio).toFixed(2);
+      });
+    });
+    document.querySelectorAll('.extra-item').forEach(el => {
+      const id = el.id.replace('ei-','');
+      const inp = document.getElementById(`ea-${id}`);
+      if (inp?.value) inp.value = +(parseFloat(inp.value)*ratio).toFixed(2);
+    });
+  }
+  currSym = toSym;
+  localStorage.setItem('dc_currency', toCode);
+  document.getElementById('currencySelect').value = toCode;
+  document.querySelectorAll('.cur-sym').forEach(el => el.textContent = currSym);
   updateDebtTotal();
+  if (document.getElementById('results').classList.contains('on') && window._lastRenderArgs) {
+    const a = window._lastRenderArgs;
+    renderResults(a.history, a.debts, a.totalDebt, a.totalInterest, a.phases, a.items, a.payoffMap);
+  }
 }
 
 function initCurrency() {
@@ -1043,9 +1124,10 @@ function addDebt(name='', balance='', rate='', minPayment='') {
       <div class="inp-wrap dn"><input type="text" id="dn-${id}" placeholder="${t('debtName')}" value="${name}"></div>
       <div class="inp-wrap db"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="db-${id}" class="pl" placeholder="${t('balance')}" min="0" value="${balance}" oninput="updateDebtTotal()"></div>
       <div class="inp-wrap dr"><input type="number" id="dr-${id}" class="pr" placeholder="${t('rate')}" min="0" max="100" step="0.01" value="${rate}"><span class="inp-suf">%</span></div>
-      <div class="inp-wrap dm"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="dm-${id}" class="pl" placeholder="${t('minPayment')}" min="0" value="${minPayment}"></div>
+      <div class="inp-wrap dm"><span class="inp-pre cur-sym">${currSym}</span><input type="number" id="dm-${id}" class="pl" placeholder="${t('minPayment')}" min="0" value="${minPayment}" title="${t('minPayNote')}"></div>
       <button class="rm-btn" onclick="removeDebt(${id})">✕</button>
-    </div>`;
+    </div>
+    <div style="font-size:.68rem;color:var(--dim);padding:2px 6px 4px;opacity:.7">${t('minPayNote')}</div>`;
   document.getElementById('debtList').appendChild(el);
   updateDebtTotal();
 }
@@ -1304,37 +1386,37 @@ function simulate(debtsInput, phases, items, strat, paydayRef) {
       const activeDebts = debts.filter(d => d.balance >= 0.005);
       const totalMins   = activeDebts.reduce((s, d) => s + Math.min(d.minPayment || 0, d.balance), 0);
 
-      if (strat === 'prorata') {
-        const tot = activeDebts.reduce((s,d) => s + d.balance, 0);
-        if (tot > 0) {
-          for (const d of activeDebts) {
-            const pay = Math.min(totalPay * (d.balance / tot), d.balance);
-            d.balance -= pay;
-            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
-          }
+      if (totalPay < totalMins) {
+        // Not enough to cover all minimums – distribute proportionally to min payments
+        const tot = activeDebts.reduce((s,d) => s + (d.minPayment || 0), 0);
+        for (const d of activeDebts) {
+          const share = tot > 0 ? (d.minPayment || 0) / tot : 1 / activeDebts.length;
+          const pay = Math.min(totalPay * share, d.balance);
+          d.balance -= pay;
+          if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
         }
       } else {
-        if (totalPay < totalMins) {
-          // Not enough to cover all minimums – distribute proportionally
-          const tot = activeDebts.reduce((s,d) => s + (d.minPayment || 0), 0);
-          for (const d of activeDebts) {
-            if (d.balance < 0.005) continue;
-            const share = tot > 0 ? (d.minPayment || 0) / tot : 1 / activeDebts.length;
-            const pay = Math.min(totalPay * share, d.balance);
-            d.balance -= pay;
-            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+        // Step 1: Pay guaranteed minimums to every debt
+        let rem = totalPay;
+        for (const d of activeDebts) {
+          const minPay = Math.min(d.minPayment || 0, d.balance);
+          d.balance -= minPay;
+          rem -= minPay;
+          if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+        }
+        // Step 2: Apply surplus according to strategy
+        if (strat === 'prorata') {
+          const remaining = activeDebts.filter(d => d.balance >= 0.005);
+          const tot = remaining.reduce((s,d) => s + d.balance, 0);
+          if (tot > 0 && rem > 0) {
+            for (const d of remaining) {
+              const pay = Math.min(rem * (d.balance / tot), d.balance);
+              d.balance -= pay;
+              if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
+            }
           }
         } else {
-          // 1) Pay minimums to all active debts first
-          let rem = totalPay;
-          for (const d of activeDebts) {
-            if (d.balance < 0.005) continue;
-            const minPay = Math.min(d.minPayment || 0, d.balance);
-            d.balance -= minPay;
-            rem -= minPay;
-            if (d.balance < 0.01 && !payoffMap[d.id]) payoffMap[d.id] = {m, date: new Date(curDate)};
-          }
-          // 2) Apply surplus to priority debt
+          // avalanche / snowball: apply surplus to priority debt in order
           for (const d of debts) {
             if (rem < 0.005) break;
             if (d.balance < 0.005) continue;
