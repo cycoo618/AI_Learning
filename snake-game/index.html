@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>贪食蛇</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a2e;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      color: #4ecca3;
+      letter-spacing: 2px;
+    }
+
+    /* ── Controls ── */
+    #controls {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .ctrl-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ctrl-group label {
+      font-size: 0.75rem;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    button {
+      padding: 6px 16px;
+      border: 2px solid #4ecca3;
+      background: transparent;
+      color: #4ecca3;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button:hover, button.active {
+      background: #4ecca3;
+      color: #1a1a2e;
+    }
+
+    button.danger { border-color: #e84545; color: #e84545; }
+    button.danger:hover, button.danger.active { background: #e84545; color: #fff; }
+
+    /* ── Score bar ── */
+    #scorebar {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    #scorebar span { color: #4ecca3; font-weight: bold; font-size: 1.2rem; }
+
+    /* ── Status message ── */
+    #status {
+      min-height: 22px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      color: #f9ca24;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* ── Canvas ── */
+    #gameCanvas {
+      border: 2px solid #4ecca3;
+      border-radius: 4px;
+      display: block;
+      background: #0f0f1a;
+    }
+
+    /* ── Legend ── */
+    #legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: #aaa;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Keyboard hint ── */
+    #hint {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐍 贪食蛇</h1>
+
+  <div id="controls">
+    <div class="ctrl-group">
+      <label>难度</label>
+      <div class="btn-row">
+        <button id="btn-easy"   onclick="setDifficulty('easy')">简单</button>
+        <button id="btn-medium" onclick="setDifficulty('medium')" class="active">普通</button>
+        <button id="btn-hard"   onclick="setDifficulty('hard')">困难</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>障碍物</label>
+      <div class="btn-row">
+        <button id="btn-obstacles" onclick="toggleObstacles()">关闭</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>操作</label>
+      <div class="btn-row">
+        <button onclick="startGame()">开始 / 重置</button>
+        <button onclick="togglePause()">暂停</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scorebar">
+    得分: <span id="scoreVal">0</span>
+    &nbsp;&nbsp;最高: <span id="highVal">0</span>
+  </div>
+
+  <div id="status">按 开始 / 重置 开始游戏</div>
+
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+  <div id="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#4ecca3"></div>普通食物 +10</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f9ca24"></div>黄金食物 +30</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6c5ce7"></div>减速食物 +5 (临时减速)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00b894"></div>加速食物 +5 (临时加速)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e84545"></div>炸弹 (游戏结束!)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#636e72"></div>障碍物</div>
+  </div>
+
+  <div id="hint">方向键 / WASD 控制方向 &nbsp;|&nbsp; P 暂停</div>
+
+  <script>
+    // ─────────────────────────────────────────────
+    //  Config
+    // ─────────────────────────────────────────────
+    const GRID = 20;         // grid size in pixels
+    const COLS = 20;
+    const ROWS = 20;
+
+    const SPEEDS = { easy: 160, medium: 100, hard: 55 };  // ms per tick
+    const OBSTACLE_COUNT = 12;
+
+    // Food types: { type, color, points, effect, effectDuration }
+    const FOOD_TYPES = {
+      normal:  { color: '#4ecca3', points: 10,  effect: null },
+      golden:  { color: '#f9ca24', points: 30,  effect: null },
+      slow:    { color: '#6c5ce7', points: 5,   effect: 'slow',   effectDuration: 5000 },
+      boost:   { color: '#00b894', points: 5,   effect: 'boost',  effectDuration: 3000 },
+      bomb:    { color: '#e84545', points: 0,   effect: 'die' },
+    };
+
+    // Weighted spawn table (normal food is always present separately)
+    const SPECIAL_SPAWN_TABLE = [
+      { type: 'golden', weight: 15 },
+      { type: 'slow',   weight: 20 },
+      { type: 'boost',  weight: 20 },
+      { type: 'bomb',   weight: 15 },
+    ];
+
+    // ─────────────────────────────────────────────
+    //  State
+    // ─────────────────────────────────────────────
+    const canvas  = document.getElementById('gameCanvas');
+    const ctx     = canvas.getContext('2d');
+
+    let snake, dir, nextDir, score, highScore = 0;
+    let foods = [];        // [{x,y,type}]
+    let obstacles = [];    // [{x,y}]
+    let loop, paused = false, running = false;
+    let difficulty = 'medium';
+    let obstaclesOn = false;
+    let effectTimeout = null;
+    let currentEffect = null;  // 'slow' | 'boost' | null
+    let effectExpiry = 0;
+
+    // ─────────────────────────────────────────────
+    //  UI helpers
+    // ─────────────────────────────────────────────
+    function setDifficulty(d) {
+      difficulty = d;
+      ['easy','medium','hard'].forEach(x => document.getElementById('btn-'+x).classList.remove('active'));
+      document.getElementById('btn-'+d).classList.add('active');
+      if (running) restartLoop();
+    }
+
+    function toggleObstacles() {
+      obstaclesOn = !obstaclesOn;
+      const btn = document.getElementById('btn-obstacles');
+      btn.textContent = obstaclesOn ? '开启' : '关闭';
+      btn.classList.toggle('active', obstaclesOn);
+      btn.classList.toggle('danger', obstaclesOn);
+    }
+
+    function togglePause() {
+      if (!running) return;
+      paused = !paused;
+      if (paused) {
+        clearInterval(loop);
+        setStatus('暂停中 — 按 暂停 继续');
+      } else {
+        startLoop();
+        setStatus('');
+      }
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function updateScore() {
+      document.getElementById('scoreVal').textContent = score;
+      document.getElementById('highVal').textContent  = highScore;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Game init
+    // ─────────────────────────────────────────────
+    function startGame() {
+      clearInterval(loop);
+      clearTimeout(effectTimeout);
+
+      snake    = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
+      dir      = { x: 1, y: 0 };
+      nextDir  = { x: 1, y: 0 };
+      score    = 0;
+      foods    = [];
+      currentEffect = null;
+      effectExpiry  = 0;
+      paused   = false;
+      running  = true;
+
+      obstacles = obstaclesOn ? genObstacles() : [];
+
+      spawnFood('normal');
+      spawnSpecialFood();
+
+      updateScore();
+      setStatus('');
+      startLoop();
+    }
+
+    function startLoop() {
+      clearInterval(loop);
+      const speed = effectiveSpeed();
+      loop = setInterval(tick, speed);
+    }
+
+    function restartLoop() {
+      if (!running || paused) return;
+      startLoop();
+    }
+
+    function effectiveSpeed() {
+      const base = SPEEDS[difficulty];
+      if (currentEffect === 'slow')  return Math.min(base * 1.8, 260);
+      if (currentEffect === 'boost') return Math.max(base * 0.5, 40);
+      return base;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Obstacle generation
+    // ─────────────────────────────────────────────
+    function genObstacles() {
+      const obs = [];
+      const safeZone = new Set();
+      // Keep center area safe for snake start
+      for (let x = 7; x <= 13; x++)
+        for (let y = 8; y <= 12; y++)
+          safeZone.add(`${x},${y}`);
+
+      let attempts = 0;
+      while (obs.length < OBSTACLE_COUNT && attempts < 500) {
+        attempts++;
+        const x = rand(0, COLS - 1);
+        const y = rand(0, ROWS - 1);
+        if (!safeZone.has(`${x},${y}`) && !obs.some(o => o.x === x && o.y === y)) {
+          obs.push({ x, y });
+        }
+      }
+      return obs;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Food spawning
+    // ─────────────────────────────────────────────
+    function spawnFood(type) {
+      const pos = randomEmpty();
+      if (pos) foods.push({ ...pos, type });
+    }
+
+    function spawnSpecialFood() {
+      // Randomly pick from weighted table
+      const total = SPECIAL_SPAWN_TABLE.reduce((s, e) => s + e.weight, 0);
+      let r = Math.random() * total;
+      for (const entry of SPECIAL_SPAWN_TABLE) {
+        r -= entry.weight;
+        if (r <= 0) { spawnFood(entry.type); return; }
+      }
+    }
+
+    function randomEmpty() {
+      const occupied = new Set([
+        ...snake.map(s => `${s.x},${s.y}`),
+        ...obstacles.map(o => `${o.x},${o.y}`),
+        ...foods.map(f => `${f.x},${f.y}`),
+      ]);
+      const candidates = [];
+      for (let x = 0; x < COLS; x++)
+        for (let y = 0; y < ROWS; y++)
+          if (!occupied.has(`${x},${y}`)) candidates.push({ x, y });
+      if (!candidates.length) return null;
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    // ─────────────────────────────────────────────
+    //  Game tick
+    // ─────────────────────────────────────────────
+    function tick() {
+      dir = { ...nextDir };
+      const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+      // Wall collision
+      if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
+
+      // Self collision
+      if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
+
+      // Obstacle collision
+      if (obstacles.some(o => o.x === head.x && o.y === head.y)) return gameOver();
+
+      snake.unshift(head);
+
+      // Check food
+      const fi = foods.findIndex(f => f.x === head.x && f.y === head.y);
+      if (fi !== -1) {
+        const food = foods[fi];
+        foods.splice(fi, 1);
+        const fdata = FOOD_TYPES[food.type];
+
+        if (fdata.effect === 'die') {
+          draw();
+          return gameOver('💥 踩到炸弹！');
+        }
+
+        score += fdata.points;
+        if (score > highScore) highScore = score;
+        updateScore();
+
+        if (fdata.effect) applyEffect(fdata.effect, fdata.effectDuration);
+
+        // Respawn food
+        if (food.type === 'normal') spawnFood('normal');
+        else {
+          spawnSpecialFood();
+          // Always keep at least one normal food
+          if (!foods.some(f => f.type === 'normal')) spawnFood('normal');
+        }
+      } else {
+        snake.pop();  // no food eaten → remove tail
+      }
+
+      draw();
+    }
+
+    // ─────────────────────────────────────────────
+    //  Effects
+    // ─────────────────────────────────────────────
+    function applyEffect(effect, duration) {
+      clearTimeout(effectTimeout);
+      currentEffect = effect;
+      restartLoop();
+
+      const label = effect === 'slow' ? '⏱ 减速中…' : '⚡ 加速中…';
+      setStatus(label);
+
+      effectExpiry = Date.now() + duration;
+      effectTimeout = setTimeout(() => {
+        currentEffect = null;
+        setStatus('');
+        restartLoop();
+      }, duration);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Game over
+    // ─────────────────────────────────────────────
+    function gameOver(msg) {
+      clearInterval(loop);
+      clearTimeout(effectTimeout);
+      running = false;
+      currentEffect = null;
+
+      // Flash game-over overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#e84545';
+      ctx.font = 'bold 28px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText(msg || '游戏结束！', canvas.width / 2, canvas.height / 2 - 14);
+      ctx.fillStyle = '#eee';
+      ctx.font = '16px Segoe UI';
+      ctx.fillText(`得分: ${score}`, canvas.width / 2, canvas.height / 2 + 18);
+      ctx.textAlign = 'left';
+
+      setStatus(`游戏结束 — 得分 ${score}，按 开始/重置 再来一局`);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Drawing
+    // ─────────────────────────────────────────────
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid lines (subtle)
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x <= COLS; x++) {
+        ctx.beginPath(); ctx.moveTo(x * GRID, 0); ctx.lineTo(x * GRID, canvas.height); ctx.stroke();
+      }
+      for (let y = 0; y <= ROWS; y++) {
+        ctx.beginPath(); ctx.moveTo(0, y * GRID); ctx.lineTo(canvas.width, y * GRID); ctx.stroke();
+      }
+
+      // Obstacles
+      obstacles.forEach(o => {
+        ctx.fillStyle = '#636e72';
+        ctx.fillRect(o.x * GRID + 1, o.y * GRID + 1, GRID - 2, GRID - 2);
+        ctx.fillStyle = '#b2bec3';
+        ctx.fillRect(o.x * GRID + 3, o.y * GRID + 3, 4, 4);
+      });
+
+      // Foods
+      foods.forEach(f => {
+        const fd = FOOD_TYPES[f.type];
+        const cx = f.x * GRID + GRID / 2;
+        const cy = f.y * GRID + GRID / 2;
+        const r  = GRID / 2 - 2;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = fd.color;
+        ctx.fill();
+
+        // Glow
+        ctx.shadowColor = fd.color;
+        ctx.shadowBlur  = 8;
+        ctx.fill();
+        ctx.shadowBlur  = 0;
+
+        // Bomb icon
+        if (f.type === 'bomb') {
+          ctx.fillStyle = '#fff';
+          ctx.font = `${GRID - 4}px serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('💣', cx, cy + 1);
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'alphabetic';
+        }
+      });
+
+      // Snake
+      snake.forEach((seg, i) => {
+        const isHead = i === 0;
+        const t = 1 - i / snake.length;
+
+        if (currentEffect === 'boost') {
+          ctx.fillStyle = `hsl(${160 + i * 4}, 80%, ${40 + t * 20}%)`;
+        } else if (currentEffect === 'slow') {
+          ctx.fillStyle = `hsl(${260 + i * 2}, 60%, ${40 + t * 20}%)`;
+        } else {
+          ctx.fillStyle = isHead ? '#56d8b0' : `hsl(${145 - i * 1.5}, 60%, ${35 + t * 15}%)`;
+        }
+
+        const margin = isHead ? 1 : 2;
+        roundRect(ctx, seg.x * GRID + margin, seg.y * GRID + margin, GRID - margin*2, GRID - margin*2, isHead ? 5 : 3);
+        ctx.fill();
+
+        // Eyes on head
+        if (isHead) {
+          const ex = seg.x * GRID + GRID / 2;
+          const ey = seg.y * GRID + GRID / 2;
+          const eyeOff = 3.5;
+          // Determine eye positions based on direction
+          let e1, e2;
+          if (dir.x === 1)  { e1 = {x:ex+3,y:ey-eyeOff}; e2 = {x:ex+3,y:ey+eyeOff}; }
+          else if (dir.x===-1){ e1={x:ex-3,y:ey-eyeOff}; e2={x:ex-3,y:ey+eyeOff}; }
+          else if (dir.y===-1){ e1={x:ex-eyeOff,y:ey-3}; e2={x:ex+eyeOff,y:ey-3}; }
+          else               { e1={x:ex-eyeOff,y:ey+3}; e2={x:ex+eyeOff,y:ey+3}; }
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(e1.x, e1.y, 2, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(e2.x, e2.y, 2, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#1a1a2e';
+          ctx.beginPath(); ctx.arc(e1.x, e1.y, 1, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(e2.x, e2.y, 1, 0, Math.PI*2); ctx.fill();
+        }
+      });
+
+      // Effect timer bar
+      if (currentEffect && effectExpiry) {
+        const remaining = Math.max(0, effectExpiry - Date.now());
+        const total = currentEffect === 'slow' ? 5000 : 3000;
+        const pct = remaining / total;
+        const barW = canvas.width * pct;
+        ctx.fillStyle = currentEffect === 'slow' ? '#6c5ce7' : '#00b894';
+        ctx.fillRect(0, canvas.height - 4, barW, 4);
+      }
+    }
+
+    // Rounded rect helper
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Input
+    // ─────────────────────────────────────────────
+    const DIRS = {
+      ArrowUp:    { x: 0, y: -1 }, w: { x: 0, y: -1 }, W: { x: 0, y: -1 },
+      ArrowDown:  { x: 0, y:  1 }, s: { x: 0, y:  1 }, S: { x: 0, y:  1 },
+      ArrowLeft:  { x:-1, y:  0 }, a: { x:-1, y:  0 }, A: { x:-1, y:  0 },
+      ArrowRight: { x: 1, y:  0 }, d: { x: 1, y:  0 }, D: { x: 1, y:  0 },
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'p' || e.key === 'P') { togglePause(); return; }
+      const d = DIRS[e.key];
+      if (!d) return;
+      e.preventDefault();
+      // Prevent reversing into self
+      if (d.x === -dir.x && d.y === -dir.y) return;
+      nextDir = d;
+    });
+
+    // Draw empty board on load
+    draw();
+    setStatus('按 开始 / 重置 开始游戏');
+  </script>
+</body>
+</html>
