@@ -1,0 +1,18 @@
+{
+  "name": "CONNECT FOUR · 四子棋",
+  "short_name": "四子棋",
+  "description": "Connect Four with AI opponent — 3 difficulty levels",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#06060f",
+  "theme_color": "#06060f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
