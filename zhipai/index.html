@@ -14,6 +14,9 @@
   --cw: 100px;
   --ch: 140px;
   --cr: 8px;
+  --cv: 22px;
+  --cs: 20px;
+  --cm: 58px;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -23,19 +26,20 @@ body {
   font-family: 'Crimson Text', Georgia, serif;
   min-height: 100vh;
   user-select: none;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 /* ── HEADER ─────────────────────────────────── */
 #hdr {
-  min-width: 900px;
   background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 100%);
   border-bottom: 1px solid rgba(201,168,76,.28);
-  padding: 10px 24px;
+  padding: 10px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 #hdr-title {
   font-family: 'Cinzel', serif;
@@ -59,7 +63,7 @@ body {
 .btn:disabled { opacity:.38; cursor:not-allowed; }
 
 /* ── GAME ────────────────────────────────────── */
-#game { min-width: 900px; padding: 16px 24px 30px; }
+#game { padding: 12px 16px 30px; }
 
 /* ── TOP ROW ─────────────────────────────────── */
 #top-row {
@@ -168,9 +172,9 @@ body {
 .c-blk { color:#181818; }
 .c-tl { position:absolute; top:5px; left:7px; line-height:1; }
 .c-br { position:absolute; bottom:5px; right:7px; line-height:1; transform:rotate(180deg); }
-.c-val  { display:block; font-family:'Cinzel',serif; font-size:22px; font-weight:600; }
-.c-suit { display:block; font-size:20px; text-align:center; }
-.c-mid  { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:58px; opacity:.22; pointer-events:none; }
+.c-val  { display:block; font-family:'Cinzel',serif; font-size:var(--cv); font-weight:600; }
+.c-suit { display:block; font-size:var(--cs); text-align:center; }
+.c-mid  { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:var(--cm); opacity:.22; pointer-events:none; }
 
 /* waste top card — relative position for the waste slot */
 .waste-card {
@@ -326,6 +330,17 @@ body {
 .sp-dc-desc { font-size:13px; color:rgba(255,255,255,.45); margin-bottom:3px; }
 .sp-dc-hint { font-size:11px; color:rgba(255,255,255,.25); }
 
+/* ── RESPONSIVE ──────────────────────────────── */
+@media (max-width: 500px) {
+  #hdr-title { font-size: 16px; letter-spacing: 2px; }
+  #hdr-title small { display: none; }
+  .stat-val { font-size: 20px; }
+  .stat { min-width: 44px; }
+  #stats { gap: 14px; }
+  .btn { font-size: 10px; padding: 6px 10px; letter-spacing: 1px; }
+  #btns { gap: 5px; }
+}
+
 /* ── AUTO-COMPLETE FLY CARD ──────────────────── */
 .fly-card {
   position: fixed;
@@ -389,7 +404,7 @@ body {
 
 <!-- ══ SPIDER SECTION ══ -->
 <div id="sp-section" style="display:none">
-  <div id="sp-game" style="min-width:1120px; padding:16px 24px 30px;">
+  <div id="sp-game" style="padding:12px 16px 30px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;">
       <div>
         <div class="top-label">已完成花色</div>
@@ -456,9 +471,9 @@ body {
 const SUITS  = ['♠','♥','♦','♣'];   // 0=spades 1=hearts 2=diamonds 3=clubs
 const IS_RED = [false,true,true,false];
 const VALS   = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const CW = 100, CH = 140;
-const FDO = 26;   // face-down overlap
-const FUO = 36;   // face-up overlap
+let CW = 100, CH = 140;
+let FDO = 26;   // face-down overlap
+let FUO = 36;   // face-up overlap
 
 /* =====================================================
    STATE
@@ -485,6 +500,7 @@ function makeDeck() {
 function newGame() {
   AUTO_RUNNING = false;
   HIST = [];
+  updateSizes();
   const deck = makeDeck();
   const tab = Array.from({length:7}, () => []);
   let idx = 0;
@@ -959,6 +975,7 @@ function renderWaste() {
     <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>`;
   cardEl.addEventListener('mousedown', e => startDrag(e, 'waste', 0, 0));
   cardEl.addEventListener('dblclick', () => tryAutoFound('waste', 0, 0));
+  cardEl.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; startDrag({ clientX: t.clientX, clientY: t.clientY, preventDefault:()=>{}, stopPropagation:()=>{} }, 'waste', 0, 0); }, { passive: false });
   el.appendChild(cardEl);
 }
 
@@ -1038,6 +1055,7 @@ function renderTab() {
         if (pickable) {
           cardEl.addEventListener('mousedown', e => startDrag(e, 'tab', col, i));
           cardEl.addEventListener('dblclick',  () => tryAutoFound('tab', col, i));
+          cardEl.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; startDrag({ clientX: t.clientX, clientY: t.clientY, preventDefault:()=>{}, stopPropagation:()=>{} }, 'tab', col, i); }, { passive: false });
         }
       }
 
@@ -1124,6 +1142,12 @@ function startDrag(e, src, col, fromIdx) {
 
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup',   onDragEnd);
+
+  // Touch support
+  const _tm = e2 => { e2.preventDefault(); onDragMove({ clientX: e2.touches[0].clientX, clientY: e2.touches[0].clientY }); };
+  const _te = e2 => { document.removeEventListener('touchmove', _tm); document.removeEventListener('touchend', _te); onDragEnd({ clientX: e2.changedTouches[0].clientX, clientY: e2.changedTouches[0].clientY }); };
+  document.addEventListener('touchmove', _tm, { passive: false });
+  document.addEventListener('touchend',  _te);
 }
 
 function onDragMove(e) {
@@ -1241,6 +1265,7 @@ function switchTab(tab) {
   const isKl = tab === 'kl';
   document.getElementById('kl-section').style.display = isKl ? '' : 'none';
   document.getElementById('sp-section').style.display = isKl ? 'none' : '';
+  updateSizes();
   // hint button visible for both games
 
   if (isKl) {
@@ -1281,8 +1306,37 @@ function updateSpStats() {
 /* =====================================================
    SPIDER — CONSTANTS & STATE
    ===================================================== */
-const SP_FDO = 20;  // face-down overlap
-const SP_FUO = 28;  // face-up overlap
+let SP_FDO = 20;  // face-down overlap
+let SP_FUO = 28;  // face-up overlap
+
+/* =====================================================
+   RESPONSIVE SIZES
+   ===================================================== */
+function updateSizes() {
+  const vw = window.innerWidth;
+  const isSp = ACTIVE_TAB === 'sp';
+  const numCols = isSp ? 10 : 7;
+  const pad = 32;   // 16px each side
+  const gap = isSp ? 8 : 9;
+  const totalGap = gap * (numCols - 1);
+  const minCW = isSp ? 30 : 40;
+
+  CW = Math.min(100, Math.max(minCW, Math.floor((vw - pad - totalGap) / numCols)));
+  CH = Math.round(CW * 1.4);
+  const s = CW / 100;
+  FDO   = Math.max(14, Math.round(26 * s));
+  FUO   = Math.max(18, Math.round(36 * s));
+  SP_FDO = Math.max(10, Math.round(20 * s));
+  SP_FUO = Math.max(14, Math.round(28 * s));
+
+  const r = document.documentElement;
+  r.style.setProperty('--cw', CW + 'px');
+  r.style.setProperty('--ch', CH + 'px');
+  r.style.setProperty('--cr', Math.max(3, Math.round(8 * s)) + 'px');
+  r.style.setProperty('--cv', Math.max(11, Math.round(22 * s)) + 'px');
+  r.style.setProperty('--cs', Math.max(9,  Math.round(20 * s)) + 'px');
+  r.style.setProperty('--cm', Math.max(20, Math.round(58 * s)) + 'px');
+}
 
 let SP      = null;
 let SP_HIST = [];
@@ -1308,6 +1362,7 @@ function spNewGame(diff) {
   SP_AUTO = false;
   SP_HIST = [];
   SP_DR = null;
+  updateSizes();
   const deck = spMakeDeck(diff);
   const tab = Array.from({length:10}, () => []);
   let idx = 0;
@@ -1511,6 +1566,7 @@ function spRenderTab() {
         if (pickable) {
           cardEl.addEventListener('mousedown', e => spStartDrag(e, col, i));
           cardEl.addEventListener('dblclick',  () => spTryAutoMove(col, i));
+          cardEl.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; spStartDrag({ clientX: t.clientX, clientY: t.clientY, preventDefault:()=>{}, stopPropagation:()=>{} }, col, i); }, { passive: false });
         }
       }
       cardEl.style.top = top + 'px';
@@ -1693,6 +1749,12 @@ function spStartDrag(e, col, fromIdx) {
   SP_DR = { col, fromIdx, cards, ox, oy, moved: false };
   document.addEventListener('mousemove', spOnMove);
   document.addEventListener('mouseup',   spOnEnd);
+
+  // Touch support
+  const _tm = e2 => { e2.preventDefault(); spOnMove({ clientX: e2.touches[0].clientX, clientY: e2.touches[0].clientY }); };
+  const _te = e2 => { document.removeEventListener('touchmove', _tm); document.removeEventListener('touchend', _te); spOnEnd({ clientX: e2.changedTouches[0].clientX, clientY: e2.changedTouches[0].clientY }); };
+  document.addEventListener('touchmove', _tm, { passive: false });
+  document.addEventListener('touchend',  _te);
 }
 
 function spOnMove(e) {
@@ -1746,6 +1808,11 @@ function spOnEnd(e) {
 /* =====================================================
    START
    ===================================================== */
+window.addEventListener('resize', () => {
+  updateSizes();
+  if (ACTIVE_TAB === 'kl' && G) render();
+  else if (ACTIVE_TAB === 'sp' && SP) spRender();
+});
 newGame();
 </script>
 </body>
