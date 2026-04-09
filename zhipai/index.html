@@ -1646,6 +1646,11 @@ function spShowHint() {
    ===================================================== */
 let SP_AUTO = false;
 let SP_AUTO_STEPS = 0;
+let SP_AUTO_SEEN = new Set();
+
+function spBoardHash() {
+  return SP.tab.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
+}
 
 function spCheckAutoComplete() {
   if (SP_AUTO || !SP) return;
@@ -1654,15 +1659,21 @@ function spCheckAutoComplete() {
   if (!SP.tab.every(col => col.every(c => c.up))) return;
   SP_AUTO = true;
   SP_AUTO_STEPS = 0;
+  SP_AUTO_SEEN = new Set();
   toast('✨ 所有牌已翻开，自动归位中…', 2500);
   setTimeout(spAutoStep, 500);
 }
 
 function spAutoStep() {
   if (!SP_AUTO) return;
-  if (++SP_AUTO_STEPS > 300) { SP_AUTO = false; return; }
+  if (++SP_AUTO_STEPS > 500) { SP_AUTO = false; return; }
 
-  // Find best move: strongly prefer placing on same-suit card (builds sequences)
+  // Cycle detection: stop if we've seen this board state before
+  const hash = spBoardHash();
+  if (SP_AUTO_SEEN.has(hash)) { SP_AUTO = false; return; }
+  SP_AUTO_SEEN.add(hash);
+
+  // Find best move: prefer same-suit placements that extend sequences
   let best = null;
   for (let col = 0; col < 10; col++) {
     for (let idx = 0; idx < SP.tab[col].length; idx++) {
@@ -1672,15 +1683,22 @@ function spAutoStep() {
         if (tc === col || !spCanDrop(seq, tc)) continue;
         const tCol = SP.tab[tc];
         const sameSuit = tCol.length > 0 && tCol[tCol.length-1].s === seq[0].s;
-        const score = sameSuit ? 10 : (tCol.length > 0 ? 2 : 1);
-        if (!best || score > best.score)
-          best = { fromCol:col, fromIdx:idx, toCol:tc, score };
+        // Bonus if this move would extend a sequence toward K→A completion
+        const seqLen = sameSuit ? idx + seq.length : seq.length;
+        const moveScore = sameSuit ? 10 + seqLen : (tCol.length > 0 ? 2 : 1);
+        if (!best || moveScore > best.moveScore)
+          best = { fromCol:col, fromIdx:idx, toCol:tc, moveScore };
       }
     }
   }
 
   if (best) {
-    spExecMove(best.fromCol, best.fromIdx, best.toCol);
+    // Move directly without score/moves penalty during auto-complete
+    const moved = SP.tab[best.fromCol].splice(best.fromIdx);
+    SP.tab[best.toCol].push(...moved);
+    const src = SP.tab[best.fromCol];
+    if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
+    spCheckSeqs();
     spRender();
     setTimeout(spAutoStep, 160);
   } else {
