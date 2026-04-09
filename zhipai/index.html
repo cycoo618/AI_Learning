@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接龙纸牌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --felt:   #1b5e32;
+  --gold:   #c9a84c;
+  --gold-lt:#e8c96a;
+  --cw: 100px;
+  --ch: 140px;
+  --cr: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: radial-gradient(ellipse 120% 80% at 50% -10%, #236b3a 0%, #0f3b1e 55%, #071f10 100%);
+  background-color: #0f3b1e;
+  font-family: 'Crimson Text', Georgia, serif;
+  min-height: 100vh;
+  user-select: none;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* ── HEADER ─────────────────────────────────── */
+#hdr {
+  min-width: 900px;
+  background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.28) 100%);
+  border-bottom: 1px solid rgba(201,168,76,.28);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#hdr-title {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(201,168,76,.5);
+}
+#hdr-title small { font-size: 11px; color: rgba(201,168,76,.45); letter-spacing: 3px; margin-left: 6px; }
+#stats { display: flex; gap: 28px; }
+.stat { text-align: center; min-width: 64px; }
+.stat-lbl { font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px; color:rgba(201,168,76,.5); text-transform:uppercase; display:block; }
+.stat-val  { font-family:'Cinzel',serif; font-size:28px; color:var(--gold-lt); display:block; line-height:1.1; }
+#btns { display:flex; gap:8px; }
+.btn {
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:1.5px; padding:7px 16px;
+  background:rgba(0,0,0,.35); color:var(--gold); border:1px solid rgba(201,168,76,.4);
+  border-radius:4px; cursor:pointer; transition:background .15s, border-color .15s;
+}
+.btn:hover { background:rgba(201,168,76,.14); border-color:var(--gold); }
+.btn:disabled { opacity:.38; cursor:not-allowed; }
+
+/* ── GAME ────────────────────────────────────── */
+#game { min-width: 900px; padding: 16px 24px 30px; }
+
+/* ── TOP ROW ─────────────────────────────────── */
+#top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.top-label {
+  font-family:'Cinzel',serif; font-size:9px; letter-spacing:2px;
+  color:rgba(201,168,76,.4); margin-bottom:5px;
+}
+
+/* Stock + Waste */
+#sw-area { display:flex; gap:12px; align-items:flex-end; }
+#sw-col  { display:flex; flex-direction:column; align-items:center; gap:4px; }
+
+/* Foundations */
+#founds-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+#founds { display:flex; gap:9px; }
+
+/* Card slot (empty placeholder) */
+.card-slot {
+  width:var(--cw); height:var(--ch);
+  border-radius:var(--cr);
+  border:2px dashed rgba(201,168,76,.22);
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.card-slot .slot-icon { font-size:28px; color:rgba(201,168,76,.15); pointer-events:none; }
+
+/* Stock card (back) */
+.stock-back {
+  width:var(--cw); height:var(--ch);
+  border-radius:var(--cr);
+  background:#1b3870; border:1px solid #162d60;
+  box-shadow:0 3px 12px rgba(0,0,0,.45), 2px 2px 0 #0f2248;
+  cursor:pointer; position:relative; display:flex;
+  align-items:center; justify-content:center;
+  transition:transform .12s, box-shadow .12s;
+}
+.stock-back:hover { transform:translateY(-3px); box-shadow:0 7px 18px rgba(0,0,0,.55); }
+.stock-back::before {
+  content:''; position:absolute; inset:4px;
+  border:1px solid rgba(255,255,255,.13); border-radius:4px;
+  background:
+    repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,.035) 4px,rgba(255,255,255,.035) 5px),
+    repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(255,255,255,.035) 4px,rgba(255,255,255,.035) 5px);
+}
+.stock-back .stock-badge { font-family:'Cinzel',serif; font-size:20px; font-weight:700; color:rgba(255,255,255,.4); position:relative; z-index:1; }
+
+.stock-empty-el {
+  width:var(--cw); height:var(--ch);
+  border-radius:var(--cr);
+  border:2px solid rgba(201,168,76,.45);
+  background: rgba(201,168,76,.07);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  color:rgba(201,168,76,.8); cursor:pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+}
+.stock-empty-el .recycle-icon { font-size:36px; line-height:1; }
+.stock-empty-el .recycle-text { font-family:'Cinzel',serif; font-size:11px; letter-spacing:1px; }
+.stock-empty-el:hover { background:rgba(201,168,76,.16); border-color:var(--gold); color:var(--gold-lt); transform:scale(1.04); }
+
+/* ── TABLEAU ─────────────────────────────────── */
+#tableau { display:flex; gap:9px; align-items:flex-start; }
+.col { width:var(--cw); flex-shrink:0; position:relative; min-height:150px; }
+.col-empty {
+  position:absolute; top:0; left:0; width:var(--cw); height:var(--ch);
+  border-radius:var(--cr); border:2px dashed rgba(255,255,255,.1); pointer-events:none;
+}
+.col-hl {
+  position:absolute; top:0; left:0; width:var(--cw);
+  border-radius:var(--cr); border:2px solid transparent;
+  background:transparent; pointer-events:none; z-index:600;
+  transition:border-color .1s, background .1s, box-shadow .1s;
+}
+.col-hl.on { border-color:rgba(255,220,50,.85); background:rgba(255,220,50,.07); box-shadow:0 0 14px rgba(255,220,50,.28); }
+
+/* ── CARDS ───────────────────────────────────── */
+.card { width:var(--cw); height:var(--ch); border-radius:var(--cr); position:absolute; }
+
+/* back */
+.c-back {
+  background:#1b3870; border:1px solid #162d60;
+  box-shadow:1px 2px 5px rgba(0,0,0,.32);
+}
+.c-back::before {
+  content:''; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.12); border-radius:4px;
+  background:
+    repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,.03) 4px,rgba(255,255,255,.03) 5px),
+    repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(255,255,255,.03) 4px,rgba(255,255,255,.03) 5px);
+}
+.c-back::after { content:'✦'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:20px; color:rgba(255,255,255,.1); }
+
+/* face */
+.c-face {
+  background:#faf9f5; border:1px solid #c6c4bb;
+  box-shadow:1px 2px 6px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.9);
+  cursor:grab;
+}
+.c-face:active { cursor:grabbing; }
+.c-face.no-grab { cursor:default; }
+.c-red { color:#be1a22; }
+.c-blk { color:#181818; }
+.c-tl { position:absolute; top:5px; left:7px; line-height:1; }
+.c-br { position:absolute; bottom:5px; right:7px; line-height:1; transform:rotate(180deg); }
+.c-val  { display:block; font-family:'Cinzel',serif; font-size:22px; font-weight:600; }
+.c-suit { display:block; font-size:20px; text-align:center; }
+.c-mid  { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:58px; opacity:.22; pointer-events:none; }
+
+/* waste top card — relative position for the waste slot */
+.waste-card {
+  position: relative !important;
+  cursor: grab;
+}
+.waste-card:active { cursor:grabbing; }
+
+/* foundation card absolute inside slot */
+.found-card { position:absolute !important; top:0; left:0; }
+
+/* drag-source dim */
+.drag-src { opacity:.2 !important; }
+
+/* ── DRAG GHOST ──────────────────────────────── */
+#ghost { position:fixed; pointer-events:none; z-index:9000; display:none; }
+#ghost .card { position:absolute; box-shadow:5px 10px 28px rgba(0,0,0,.55) !important; }
+
+/* ── FOUNDATION HIGHLIGHT ────────────────────── */
+.found-hl { transition:box-shadow .1s, border-color .1s; }
+.found-hl.on { border-color:rgba(255,220,50,.85) !important; box-shadow:0 0 14px rgba(255,220,50,.3); }
+
+/* ── WIN OVERLAY ─────────────────────────────── */
+#win-ov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.78); z-index:20000; align-items:center; justify-content:center; }
+#win-ov.show { display:flex; }
+#win-box {
+  background:linear-gradient(145deg,#1d6635 0%,#0d3018 100%);
+  border:2px solid var(--gold); border-radius:20px; padding:52px 72px;
+  text-align:center; box-shadow:0 0 80px rgba(201,168,76,.25), 0 24px 70px rgba(0,0,0,.7);
+  position:relative; overflow:hidden;
+}
+#win-box::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.18) 0%,transparent 60%); pointer-events:none; }
+#win-h1 { font-family:'Cinzel',serif; font-size:52px; letter-spacing:5px; color:var(--gold); text-shadow:0 0 36px rgba(201,168,76,.6); margin-bottom:8px; }
+#win-sub { font-size:20px; color:rgba(255,255,255,.75); margin-bottom:6px; }
+#win-info { font-family:'Cinzel',serif; font-size:15px; letter-spacing:2px; color:var(--gold-lt); margin-bottom:32px; }
+.win-btn {
+  font-family:'Cinzel',serif; font-size:13px; letter-spacing:2px; padding:12px 36px;
+  background:var(--gold); color:#0d2e17; border:none; border-radius:6px; cursor:pointer;
+  font-weight:700; box-shadow:0 4px 18px rgba(201,168,76,.4); transition:background .15s,transform .12s;
+}
+.win-btn:hover { background:var(--gold-lt); transform:translateY(-2px); }
+
+/* ── TABS ────────────────────────────────────── */
+#tab-bar { display:flex; gap:4px; margin-top:6px; }
+.tab-btn {
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:2px;
+  padding:5px 18px; border-radius:4px; cursor:pointer;
+  background:rgba(0,0,0,.2); color:rgba(201,168,76,.45);
+  border:1px solid rgba(201,168,76,.18); transition:all .15s;
+}
+.tab-btn:hover:not(.active) { color:rgba(201,168,76,.75); border-color:rgba(201,168,76,.35); }
+.tab-btn.active {
+  background:rgba(201,168,76,.15); color:var(--gold);
+  border-color:rgba(201,168,76,.55);
+}
+
+/* ── RULES HINT ──────────────────────────────── */
+#hint {
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px;
+  color:rgba(201,168,76,.35); text-align:center; margin-top:10px;
+}
+
+/* ── HINT HIGHLIGHT ──────────────────────────── */
+.hint-from {
+  animation: hint-glow .9s ease-in-out infinite !important;
+  position: relative;
+  z-index: 700 !important;
+}
+@keyframes hint-glow {
+  0%,100% { box-shadow: 0 0 0 3px var(--gold), 0 0 14px rgba(201,168,76,.7); }
+  50%      { box-shadow: 0 0 0 5px var(--gold-lt), 0 0 26px rgba(201,168,76,.95); }
+}
+.hint-to {
+  border-color: rgba(100,230,130,.9) !important;
+  background:   rgba(100,230,130,.1) !important;
+  box-shadow:   0 0 16px rgba(100,230,130,.4) !important;
+}
+
+/* ── TOAST ───────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: rgba(8,28,14,.92);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 13px 28px;
+  color: var(--gold-lt);
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+  z-index: 15000;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── SPIDER DIFF MODAL ───────────────────────── */
+#sp-diff-ov {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.78);
+  z-index:18000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.sp-diff-box {
+  background:linear-gradient(145deg,#1d6635 0%,#0d3018 100%);
+  border:2px solid var(--gold);
+  border-radius:20px;
+  padding:50px 60px;
+  text-align:center;
+  box-shadow:0 0 80px rgba(201,168,76,.25), 0 24px 70px rgba(0,0,0,.7);
+  position:relative;
+  overflow:hidden;
+}
+.sp-diff-box::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.18) 0%,transparent 60%);
+  pointer-events:none;
+}
+.sp-diff-title {
+  font-family:'Cinzel',serif; font-size:46px; letter-spacing:5px;
+  color:var(--gold); text-shadow:0 0 36px rgba(201,168,76,.6);
+  margin-bottom:8px; position:relative;
+}
+.sp-diff-sub {
+  font-size:18px; color:rgba(255,255,255,.55);
+  margin-bottom:38px; position:relative;
+}
+.sp-diff-cards { display:flex; gap:18px; justify-content:center; position:relative; }
+.sp-diff-card {
+  width:148px; padding:26px 14px 22px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(201,168,76,.28);
+  border-radius:14px; cursor:pointer;
+  transition:background .18s, border-color .18s, transform .15s, box-shadow .18s;
+  color:white; text-align:center; font-family:inherit;
+}
+.sp-diff-card:hover {
+  background:rgba(201,168,76,.14); border-color:var(--gold);
+  transform:translateY(-5px); box-shadow:0 10px 28px rgba(0,0,0,.45);
+}
+.sp-dc-suit { font-size:34px; line-height:1; margin-bottom:14px; }
+.sp-dc-hard .sp-dc-suit { font-size:20px; letter-spacing:2px; }
+.sp-dc-name {
+  font-family:'Cinzel',serif; font-size:15px;
+  color:var(--gold-lt); margin-bottom:7px;
+}
+.sp-dc-desc { font-size:13px; color:rgba(255,255,255,.45); margin-bottom:3px; }
+.sp-dc-hint { font-size:11px; color:rgba(255,255,255,.25); }
+
+/* ── AUTO-COMPLETE FLY CARD ──────────────────── */
+.fly-card {
+  position: fixed;
+  pointer-events: none;
+  z-index: 8500;
+  box-shadow: 6px 12px 28px rgba(0,0,0,.55) !important;
+  transition: left .36s cubic-bezier(.4,0,.2,1),
+              top  .36s cubic-bezier(.4,0,.2,1),
+              transform .36s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div>
+    <div id="hdr-title"><span id="hdr-title-text">接龙纸牌</span> <small id="hdr-title-sub">SOLITAIRE</small></div>
+    <div id="tab-bar">
+      <button class="tab-btn active" data-tab="kl" onclick="switchTab('kl')">接龙</button>
+      <button class="tab-btn"        data-tab="sp" onclick="switchTab('sp')">蜘蛛纸牌</button>
+    </div>
+  </div>
+  <div id="stats">
+    <div class="stat"><span class="stat-lbl">得分</span><span class="stat-val" id="sv">0</span></div>
+    <div class="stat"><span class="stat-lbl">步数</span><span class="stat-val" id="mv">0</span></div>
+  </div>
+  <div id="btns">
+    <button class="btn" id="undo-btn" onclick="activeUndo()" disabled>↩ 撤销</button>
+    <button class="btn" id="hint-btn" onclick="activeHint()">💡 提示</button>
+    <button class="btn" onclick="activeNewGame()">新游戏</button>
+  </div>
+</div>
+
+<!-- ══ KLONDIKE SECTION ══ -->
+<div id="kl-section">
+<div id="game">
+  <div id="top-row">
+    <!-- Stock + Waste -->
+    <div id="sw-area">
+      <div id="sw-col">
+        <div class="top-label">牌库</div>
+        <div id="stock-el"></div>
+      </div>
+      <div id="sw-col">
+        <div class="top-label">翻牌区</div>
+        <div id="waste-el" class="card-slot"><span class="slot-icon">↑</span></div>
+      </div>
+    </div>
+    <!-- Foundations -->
+    <div id="founds-wrap">
+      <div class="top-label" style="text-align:right">目标区（A→K 同花色）</div>
+      <div id="founds"></div>
+    </div>
+  </div>
+
+  <div id="tableau"></div>
+  <div id="hint">双击自动挪牌（优先目标区，其次牌摞）· 点击牌库翻牌 · 拖拽摞牌（红黑交替降序）</div>
+</div>
+</div><!-- end kl-section -->
+
+<!-- ══ SPIDER SECTION ══ -->
+<div id="sp-section" style="display:none">
+  <div id="sp-game" style="min-width:1120px; padding:16px 24px 30px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;">
+      <div>
+        <div class="top-label">已完成花色</div>
+        <div id="sp-founds" style="display:flex; gap:8px;"></div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+        <div class="top-label">发牌</div>
+        <div id="sp-stock-el"></div>
+      </div>
+    </div>
+    <div id="sp-tableau" style="display:flex; gap:8px; align-items:flex-start;"></div>
+    <div id="hint" style="margin-top:10px;">拖拽摞牌（同花色降序）· 完整 K→A 同花色自动归位 · 双击提示</div>
+  </div>
+</div>
+
+<!-- SPIDER DIFF MODAL -->
+<div id="sp-diff-ov" style="display:none;">
+  <div class="sp-diff-box">
+    <div class="sp-diff-title">蜘蛛纸牌</div>
+    <div class="sp-diff-sub">选择游戏难度</div>
+    <div class="sp-diff-cards">
+      <button class="sp-diff-card" onclick="spNewGame(1)">
+        <div class="sp-dc-suit">♠</div>
+        <div class="sp-dc-name">简单</div>
+        <div class="sp-dc-desc">1 种花色</div>
+        <div class="sp-dc-hint">全用黑桃</div>
+      </button>
+      <button class="sp-diff-card" onclick="spNewGame(2)">
+        <div class="sp-dc-suit">♠♥</div>
+        <div class="sp-dc-name">中等</div>
+        <div class="sp-dc-desc">2 种花色</div>
+        <div class="sp-dc-hint">黑桃 + 红心</div>
+      </button>
+      <button class="sp-diff-card sp-dc-hard" onclick="spNewGame(4)">
+        <div class="sp-dc-suit">♠♥♦♣</div>
+        <div class="sp-dc-name">困难</div>
+        <div class="sp-dc-desc">4 种花色</div>
+        <div class="sp-dc-hint">全四色挑战</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAG GHOST -->
+<div id="ghost"></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- WIN OVERLAY -->
+<div id="win-ov">
+  <div id="win-box">
+    <div id="win-h1">恭喜获胜！</div>
+    <div id="win-sub">接龙完成</div>
+    <div id="win-info"></div>
+    <button class="win-btn" onclick="document.getElementById('win-ov').classList.remove('show'); activeNewGame()">再来一局</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   CONSTANTS
+   ===================================================== */
+const SUITS  = ['♠','♥','♦','♣'];   // 0=spades 1=hearts 2=diamonds 3=clubs
+const IS_RED = [false,true,true,false];
+const VALS   = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const CW = 100, CH = 140;
+const FDO = 26;   // face-down overlap
+const FUO = 36;   // face-up overlap
+
+/* =====================================================
+   STATE
+   ===================================================== */
+let G    = null;
+let HIST = [];
+let DR   = null;   // drag state
+
+/* =====================================================
+   INIT
+   ===================================================== */
+function makeDeck() {
+  let d = [];
+  for (let s = 0; s < 4; s++)
+    for (let v = 1; v <= 13; v++)
+      d.push({ s, v, up: false });
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+function newGame() {
+  AUTO_RUNNING = false;
+  HIST = [];
+  const deck = makeDeck();
+  const tab = Array.from({length:7}, () => []);
+  let idx = 0;
+  for (let c = 0; c < 7; c++) {
+    for (let i = 0; i <= c; i++) tab[c].push({...deck[idx++]});
+    tab[c][tab[c].length - 1].up = true;
+  }
+  G = {
+    tab,
+    found: [[], [], [], []],   // ♠ ♥ ♦ ♣ (fills in order of play)
+    stock: deck.slice(idx).map(x => ({...x})),
+    waste: [],
+    score: 0,
+    moves: 0
+  };
+  render();
+}
+
+function clone() {
+  return {
+    tab:   G.tab.map(c => c.map(x => ({...x}))),
+    found: G.found.map(p => p.map(x => ({...x}))),
+    stock: G.stock.map(x => ({...x})),
+    waste: G.waste.map(x => ({...x})),
+    score: G.score,
+    moves: G.moves
+  };
+}
+
+/* =====================================================
+   GAME LOGIC
+   ===================================================== */
+
+// Can we drag cards from tab[col] starting at fromIdx?
+function canPickUp(col, fromIdx) {
+  const cards = G.tab[col];
+  if (fromIdx >= cards.length || !cards[fromIdx].up) return false;
+  for (let i = fromIdx; i < cards.length - 1; i++) {
+    const a = cards[i], b = cards[i+1];
+    if (!b.up) return false;
+    if (IS_RED[a.s] === IS_RED[b.s]) return false;   // must alternate color
+    if (b.v !== a.v - 1) return false;               // must descend by 1
+  }
+  return true;
+}
+
+// Can dragCards be placed on tableau column toCol?
+function canDropTab(dragCards, toCol) {
+  const col = G.tab[toCol];
+  const bot = dragCards[0];
+  if (col.length === 0) return bot.v === 13;          // only King on empty
+  const top = col[col.length - 1];
+  return top.up && IS_RED[top.s] !== IS_RED[bot.s] && top.v === bot.v + 1;
+}
+
+// Can a single card be placed on foundation pile fi?
+function canDropFound(card, fi) {
+  const pile = G.found[fi];
+  if (pile.length === 0) return card.v === 1;         // Ace starts foundation
+  const top = pile[pile.length - 1];
+  return top.s === card.s && top.v === card.v - 1;
+}
+
+// Find a foundation slot for card (-1 if none)
+function findFound(card) {
+  for (let i = 0; i < 4; i++)
+    if (canDropFound(card, i)) return i;
+  return -1;
+}
+
+// Execute a move from tableau (fromCol, fromIdx) to tableau toCol
+function execTabToTab(fromCol, fromIdx, toCol) {
+  push();
+  const moved = G.tab[fromCol].splice(fromIdx);
+  G.tab[toCol].push(...moved);
+  flipTop(fromCol);
+  G.moves++;
+  G.score += 5;
+  checkWin();
+}
+
+// Execute move from tableau to foundation
+function execTabToFound(fromCol, fi) {
+  push();
+  const card = G.tab[fromCol].pop();
+  G.found[fi].push(card);
+  flipTop(fromCol);
+  G.moves++;
+  G.score += 15;
+  checkWin();
+}
+
+// Execute move from waste to tableau
+function execWasteToTab(toCol) {
+  push();
+  const card = G.waste.pop();
+  G.tab[toCol].push(card);
+  G.moves++;
+  G.score += 10;
+  checkWin();
+}
+
+// Execute move from waste to foundation
+function execWasteToFound(fi) {
+  push();
+  const card = G.waste.pop();
+  G.found[fi].push(card);
+  G.moves++;
+  G.score += 10;
+  checkWin();
+}
+
+function flipTop(col) {
+  const c = G.tab[col];
+  if (c.length > 0 && !c[c.length - 1].up)
+    c[c.length - 1].up = true;
+}
+
+function push() {
+  HIST.push(clone());
+  if (HIST.length > 60) HIST.shift();
+}
+
+function doUndo() {
+  if (!HIST.length) return;
+  AUTO_RUNNING = false;
+  G = HIST.pop();
+  render();
+}
+
+// Deal from stock → waste; if stock empty, recycle waste → stock
+function dealStock() {
+  push();
+  if (G.stock.length === 0) {
+    // Recycle
+    G.stock = G.waste.reverse().map(c => ({...c, up: false}));
+    G.waste = [];
+    G.score = Math.max(0, G.score - 20);
+  } else {
+    const card = G.stock.pop();
+    card.up = true;
+    G.waste.push(card);
+  }
+  G.moves++;
+  render();
+}
+
+// Double-click: auto-move card to foundation
+// Find best tableau column: prefer non-empty columns first (to avoid wasting empty spots)
+function bestTabCol(cards, excludeCol) {
+  for (let c = 0; c < 7; c++) {
+    if (c === excludeCol || G.tab[c].length === 0) continue;
+    if (canDropTab(cards, c)) return c;
+  }
+  // Fallback: empty columns (only Kings reach here)
+  for (let c = 0; c < 7; c++) {
+    if (c === excludeCol) continue;
+    if (canDropTab(cards, c)) return c;
+  }
+  return -1;
+}
+
+function tryAutoFound(src, col, fromIdx) {
+  if (src === 'waste') {
+    if (G.waste.length === 0) return;
+    const card = G.waste[G.waste.length - 1];
+    // Try foundation first
+    const fi = findFound(card);
+    if (fi !== -1) { execWasteToFound(fi); render(); return; }
+    // Then best tableau column
+    const tc = bestTabCol([card], -1);
+    if (tc !== -1) { execWasteToTab(tc); render(); }
+  } else {
+    if (!canPickUp(col, fromIdx)) return;
+    const cards = G.tab[col].slice(fromIdx);
+    // Single top card: try foundation first
+    if (fromIdx === G.tab[col].length - 1) {
+      const fi = findFound(cards[0]);
+      if (fi !== -1) { execTabToFound(col, fi); render(); return; }
+    }
+    // Then best tableau column
+    const tc = bestTabCol(cards, col);
+    if (tc !== -1) { execTabToTab(col, fromIdx, tc); render(); }
+  }
+}
+
+function checkWin() {
+  if (G.found.every(p => p.length === 13))
+    setTimeout(showWin, 400);
+}
+
+/* =====================================================
+   AUTO-COMPLETE
+   ===================================================== */
+let AUTO_RUNNING = false;
+
+function checkAutoComplete() {
+  if (AUTO_RUNNING) return;
+  if (G.found.every(p => p.length === 13)) return;
+  if (G.stock.length > 0 || G.waste.length > 0) return;
+  if (!G.tab.every(col => col.every(c => c.up))) return;
+  // All cards face-up, nothing in stock/waste → start auto-complete
+  AUTO_RUNNING = true;
+  toast('✨ 所有牌已翻开，自动归位中…', 2500);
+  setTimeout(autoStep, 500);
+}
+
+function autoStep() {
+  if (!AUTO_RUNNING) return;
+  // Find any tableau top card that can go to a foundation
+  for (let col = 0; col < 7; col++) {
+    const cards = G.tab[col];
+    if (!cards.length) continue;
+    const top = cards[cards.length - 1];
+    const fi = findFound(top);
+    if (fi !== -1) { flyToFound(col, fi, top); return; }
+  }
+  // Nothing left to move — all done
+  AUTO_RUNNING = false;
+}
+
+function flyToFound(col, fi, card) {
+  const colEl  = document.querySelector(`.col[data-col="${col}"]`);
+  const foundSlots = document.querySelectorAll('.found-hl');
+  const dstEl  = foundSlots[fi];
+  if (!colEl || !dstEl) { AUTO_RUNNING = false; return; }
+
+  const srcCards = colEl.querySelectorAll('.card');
+  const srcEl = srcCards[srcCards.length - 1];
+  if (!srcEl) { AUTO_RUNNING = false; return; }
+
+  const srcRect = srcEl.getBoundingClientRect();
+  const dstRect = dstEl.getBoundingClientRect();
+
+  // Create flying clone
+  const fly = srcEl.cloneNode(true);
+  fly.className = fly.className + ' fly-card';
+  fly.style.cssText = `
+    left:${srcRect.left}px; top:${srcRect.top}px;
+    width:${CW}px; height:${CH}px; margin:0;
+    transition:none;
+  `;
+  document.body.appendChild(fly);
+  srcEl.style.opacity = '0';
+
+  // Start flight on next frame
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fly.style.transition = '';   // enable the class transition
+    fly.style.left = dstRect.left + 'px';
+    fly.style.top  = dstRect.top  + 'px';
+    fly.style.transform = 'scale(0.93)';
+  }));
+
+  setTimeout(() => {
+    fly.remove();
+    // Update state (no history push — auto-complete is not undoable mid-stream)
+    G.tab[col].pop();
+    G.found[fi].push({...card, up: true});
+    G.score += 15;
+    render();
+
+    if (G.found.every(p => p.length === 13)) {
+      AUTO_RUNNING = false;
+      setTimeout(showWin, 300);
+      return;
+    }
+    setTimeout(autoStep, 90);
+  }, 400);
+}
+
+/* =====================================================
+   HINT
+   ===================================================== */
+let HINT_TIMER = null;
+
+function clearHint() {
+  if (HINT_TIMER) { clearTimeout(HINT_TIMER); HINT_TIMER = null; }
+  document.querySelectorAll('.hint-from, .hint-to')
+    .forEach(el => el.classList.remove('hint-from', 'hint-to'));
+}
+
+function toast(msg, ms = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// Check if any card in the given array can be placed anywhere useful right now
+function anyCardUseful(cards) {
+  for (const card of cards) {
+    if (findFound(card) !== -1) return true;
+    for (let tc = 0; tc < 7; tc++) {
+      if (canDropTab([card], tc)) return true;
+    }
+  }
+  return false;
+}
+
+function findHint() {
+  // "Progressive" moves change the game state in a meaningful way.
+  // Pure lateral moves (tab→tab with no face-down reveal) are excluded —
+  // they just shuffle cards back and forth without advancing the game.
+  const prog = [];
+
+  // 1. Any card → foundation (always progressive)
+  for (let col = 0; col < 7; col++) {
+    const cards = G.tab[col];
+    if (!cards.length) continue;
+    const top = cards[cards.length - 1];
+    if (!top.up) continue;
+    const fi = findFound(top);
+    if (fi !== -1) prog.push({ type:'tab-found', col, fi, pri:10 });
+  }
+  if (G.waste.length) {
+    const top = G.waste[G.waste.length - 1];
+    const fi = findFound(top);
+    if (fi !== -1) prog.push({ type:'waste-found', fi, pri:10 });
+  }
+
+  // 2. Tableau → tableau ONLY when it reveals a face-down card (progressive)
+  for (let col = 0; col < 7; col++) {
+    for (let idx = 0; idx < G.tab[col].length; idx++) {
+      if (!canPickUp(col, idx)) continue;
+      const reveals = idx > 0 && !G.tab[col][idx - 1].up;
+      if (!reveals) continue;                          // skip lateral moves
+      const cards = G.tab[col].slice(idx);
+      for (let tc = 0; tc < 7; tc++) {
+        if (tc === col) continue;
+        if (canDropTab(cards, tc)) {
+          prog.push({ type:'tab-tab', fromCol:col, fromIdx:idx, toCol:tc, pri:8 });
+        }
+      }
+    }
+  }
+
+  // 3. Waste → tableau (uses a dealt card — progressive)
+  if (G.waste.length) {
+    const card = G.waste[G.waste.length - 1];
+    for (let tc = 0; tc < 7; tc++) {
+      if (canDropTab([card], tc)) {
+        prog.push({ type:'waste-tab', toCol:tc, pri: G.tab[tc].length ? 5 : 2 });
+      }
+    }
+  }
+
+  // 4. Deal from stock — only if at least one stock card can actually be placed
+  if (G.stock.length && anyCardUseful(G.stock)) prog.push({ type:'deal', pri:3 });
+
+  // 5. Recycle waste — only if waste cards would be useful after recycling
+  if (!G.stock.length && G.waste.length && anyCardUseful(G.waste)) prog.push({ type:'recycle', pri:1 });
+
+  if (!prog.length) return null;   // no progressive moves → truly stuck
+  prog.sort((a, b) => b.pri - a.pri);
+  return prog[0];
+}
+
+function showHint() {
+  clearHint();
+  const h = findHint();
+
+  if (!h) {
+    toast('😔 无路可走，建议开始新游戏');
+    return;
+  }
+
+  // Apply source highlight
+  const applyFrom = el => el && el.classList.add('hint-from');
+  const applyTo   = el => el && el.classList.add('hint-to');
+
+  if (h.type === 'tab-found' || h.type === 'tab-tab') {
+    const colEl = document.querySelector(`.col[data-col="${h.fromCol ?? h.col}"]`);
+    if (colEl) {
+      const all = colEl.querySelectorAll('.card');
+      const start = h.fromIdx ?? (all.length - 1);
+      for (let i = start; i < all.length; i++) applyFrom(all[i]);
+    }
+  }
+  if (h.type === 'waste-found' || h.type === 'waste-tab') {
+    applyFrom(document.querySelector('#waste-el .waste-card'));
+  }
+  if (h.type === 'deal') applyFrom(document.querySelector('.stock-back'));
+  if (h.type === 'recycle') applyFrom(document.querySelector('.stock-empty-el'));
+
+  // Apply target highlight
+  if (h.type === 'tab-found' || h.type === 'waste-found') {
+    applyTo(document.querySelectorAll('.found-hl')[h.fi]);
+  }
+  if (h.type === 'tab-tab' || h.type === 'waste-tab') {
+    const colEl = document.querySelector(`.col[data-col="${h.toCol}"]`);
+    applyTo(colEl?.querySelector('.col-hl'));
+  }
+
+  // Describe the move
+  const SUIT_NAME = ['黑桃','红心','方块','梅花'];
+  const descCard = c => `${VALS[c.v]}${SUITS[c.s]}`;
+  let msg = '';
+  if (h.type === 'tab-found') {
+    const c = G.tab[h.col][G.tab[h.col].length - 1];
+    msg = `将 ${descCard(c)} 移入目标区`;
+  } else if (h.type === 'waste-found') {
+    const c = G.waste[G.waste.length - 1];
+    msg = `将翻牌区的 ${descCard(c)} 移入目标区`;
+  } else if (h.type === 'tab-tab') {
+    const c = G.tab[h.fromCol][h.fromIdx];
+    msg = `将 ${descCard(c)} 移到第 ${h.toCol + 1} 列`;
+  } else if (h.type === 'waste-tab') {
+    const c = G.waste[G.waste.length - 1];
+    msg = `将翻牌区的 ${descCard(c)} 移到第 ${h.toCol + 1} 列`;
+  } else if (h.type === 'deal') {
+    msg = '点击牌库翻出下一张牌';
+  } else if (h.type === 'recycle') {
+    msg = '牌库已空，点击重新发牌';
+  }
+  toast(`💡 ${msg}`, 3500);
+
+  HINT_TIMER = setTimeout(clearHint, 3500);
+}
+
+/* =====================================================
+   RENDER
+   ===================================================== */
+function render() {
+  clearHint();
+  renderStock();
+  renderWaste();
+  renderFound();
+  renderTab();
+  document.getElementById('sv').textContent = G.score;
+  document.getElementById('mv').textContent = G.moves;
+  document.getElementById('undo-btn').disabled = HIST.length === 0;
+  if (!AUTO_RUNNING) checkAutoComplete();
+}
+
+function faceHTML(card, cls = '') {
+  const rc = IS_RED[card.s] ? 'c-red' : 'c-blk';
+  const sv = VALS[card.v], ss = SUITS[card.s];
+  return `<div class="card c-face ${rc} ${cls}">
+    <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+    <div class="c-mid">${ss}</div>
+    <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+  </div>`;
+}
+
+function renderStock() {
+  const el = document.getElementById('stock-el');
+  if (G.stock.length === 0) {
+    el.innerHTML = `<div class="stock-empty-el" onclick="dealStock()"><span class="recycle-icon">↺</span><span class="recycle-text">重新发牌</span></div>`;
+  } else {
+    el.innerHTML = `<div class="stock-back" onclick="dealStock()"><span class="stock-badge">${G.stock.length}</span></div>`;
+  }
+}
+
+function renderWaste() {
+  const el = document.getElementById('waste-el');
+  if (G.waste.length === 0) {
+    el.innerHTML = `<span class="slot-icon">↑</span>`;
+    el.style.cursor = 'default';
+    return;
+  }
+  const top = G.waste[G.waste.length - 1];
+  const rc = IS_RED[top.s] ? 'c-red' : 'c-blk';
+  const sv = VALS[top.v], ss = SUITS[top.s];
+  el.innerHTML = '';
+  // Build card element
+  const cardEl = document.createElement('div');
+  cardEl.className = `card c-face ${rc} waste-card`;
+  cardEl.style.position = 'relative';
+  cardEl.innerHTML = `
+    <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+    <div class="c-mid">${ss}</div>
+    <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>`;
+  cardEl.addEventListener('mousedown', e => startDrag(e, 'waste', 0, 0));
+  cardEl.addEventListener('dblclick', () => tryAutoFound('waste', 0, 0));
+  el.appendChild(cardEl);
+}
+
+function renderFound() {
+  const el = document.getElementById('founds');
+  el.innerHTML = '';
+  const ICONS = ['♠','♥','♦','♣'];
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'card-slot found-hl';
+    slot.dataset.fi = i;
+    const pile = G.found[i];
+    if (pile.length > 0) {
+      const top = pile[pile.length - 1];
+      const rc = IS_RED[top.s] ? 'c-red' : 'c-blk';
+      const sv = VALS[top.v], ss = SUITS[top.s];
+      slot.innerHTML = `<div class="card c-face ${rc} found-card">
+        <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+        <div class="c-mid">${ss}</div>
+        <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+      </div>`;
+    } else {
+      slot.innerHTML = `<span class="slot-icon">${ICONS[i]}</span>`;
+    }
+    el.appendChild(slot);
+  }
+}
+
+function renderTab() {
+  const tab = document.getElementById('tableau');
+  tab.innerHTML = '';
+
+  for (let col = 0; col < 7; col++) {
+    const cards = G.tab[col];
+
+    // Column height
+    let h = CH;
+    for (let i = 0; i < cards.length - 1; i++)
+      h += cards[i].up ? FUO : FDO;
+    h = Math.max(h + 8, CH + 8);
+
+    const colEl = document.createElement('div');
+    colEl.className = 'col';
+    colEl.dataset.col = col;
+    colEl.style.height = h + 'px';
+
+    if (cards.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'col-empty';
+      colEl.appendChild(empty);
+    }
+
+    // Drop highlight
+    const hl = document.createElement('div');
+    hl.className = 'col-hl';
+    hl.dataset.col = col;
+    hl.style.height = h + 'px';
+    colEl.appendChild(hl);
+
+    // Cards
+    let top = 0;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      const cardEl = document.createElement('div');
+
+      if (!card.up) {
+        cardEl.className = 'card c-back';
+      } else {
+        const rc = IS_RED[card.s] ? 'c-red' : 'c-blk';
+        const pickable = canPickUp(col, i);
+        cardEl.className = `card c-face ${rc}${pickable ? '' : ' no-grab'}`;
+        const sv = VALS[card.v], ss = SUITS[card.s];
+        cardEl.innerHTML = `
+          <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+          <div class="c-mid">${ss}</div>
+          <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>`;
+        if (pickable) {
+          cardEl.addEventListener('mousedown', e => startDrag(e, 'tab', col, i));
+          cardEl.addEventListener('dblclick',  () => tryAutoFound('tab', col, i));
+        }
+      }
+
+      cardEl.style.top = top + 'px';
+      cardEl.style.zIndex = i + 1;
+      colEl.appendChild(cardEl);
+
+      if (i < cards.length - 1)
+        top += card.up ? FUO : FDO;
+    }
+
+    tab.appendChild(colEl);
+  }
+}
+
+/* =====================================================
+   DRAG & DROP
+   ===================================================== */
+function startDrag(e, src, col, fromIdx) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  let cards;
+  if (src === 'waste') {
+    if (G.waste.length === 0) return;
+    cards = [G.waste[G.waste.length - 1]];
+  } else {
+    cards = G.tab[col].slice(fromIdx);
+  }
+  if (!cards.length) return;
+
+  // Measure offset in first card
+  let firstEl;
+  if (src === 'waste') {
+    firstEl = document.querySelector('#waste-el .waste-card');
+  } else {
+    const colEl = document.querySelector(`.col[data-col="${col}"]`);
+    firstEl = colEl ? colEl.querySelectorAll('.card')[fromIdx] : null;
+  }
+  if (!firstEl) return;
+
+  const rect = firstEl.getBoundingClientRect();
+  const ox = e.clientX - rect.left;
+  const oy = e.clientY - rect.top;
+
+  // Dim source
+  if (firstEl) firstEl.classList.add('drag-src');
+  if (src === 'tab') {
+    const colEl = document.querySelector(`.col[data-col="${col}"]`);
+    const all = colEl.querySelectorAll('.card');
+    for (let i = fromIdx; i < all.length; i++) all[i].classList.add('drag-src');
+  }
+
+  // Build ghost (hidden until mouse actually moves)
+  const ghost = document.getElementById('ghost');
+  ghost.innerHTML = '';
+  ghost.style.display = 'none';
+  ghost.style.width = CW + 'px';
+
+  const ghostH = CH + (cards.length - 1) * FUO;
+  ghost.style.height = ghostH + 'px';
+
+  let gt = 0;
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    const rc = IS_RED[c.s] ? 'c-red' : 'c-blk';
+    const sv = VALS[c.v], ss = SUITS[c.s];
+    const el = document.createElement('div');
+    el.className = `card c-face ${rc}`;
+    el.style.position = 'absolute';
+    el.style.top = gt + 'px';
+    el.style.zIndex = i + 1;
+    el.innerHTML = `
+      <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+      <div class="c-mid">${ss}</div>
+      <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>`;
+    ghost.appendChild(el);
+    gt += FUO;
+  }
+  ghost.style.left = (e.clientX - ox) + 'px';
+  ghost.style.top  = (e.clientY - oy) + 'px';
+
+  DR = { src, col, fromIdx, cards, ox, oy, moved: false };
+
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!DR) return;
+  // Only activate ghost after moving 5px (so clicks/dblclicks don't trigger drag)
+  if (!DR.moved) {
+    const dx = e.clientX - (parseFloat(document.getElementById('ghost').style.left) + DR.ox);
+    const dy = e.clientY - (parseFloat(document.getElementById('ghost').style.top)  + DR.oy);
+    if (Math.abs(dx) + Math.abs(dy) < 5) return;
+    DR.moved = true;
+    document.getElementById('ghost').style.display = 'block';
+  }
+  const ghost = document.getElementById('ghost');
+  ghost.style.left = (e.clientX - DR.ox) + 'px';
+  ghost.style.top  = (e.clientY - DR.oy) + 'px';
+
+  // Highlight tableau columns
+  document.querySelectorAll('.col-hl').forEach(hl => {
+    const c = parseInt(hl.dataset.col);
+    if (isNaN(c)) return;
+    const colEl = hl.closest('.col');
+    const r = colEl.getBoundingClientRect();
+    const over = e.clientX >= r.left && e.clientX <= r.right;
+    hl.classList.toggle('on', over && canDropTab(DR.cards, c));
+  });
+
+  // Highlight foundations (only single card drags)
+  if (DR.cards.length === 1) {
+    document.querySelectorAll('.found-hl').forEach(slot => {
+      const fi = parseInt(slot.dataset.fi);
+      if (isNaN(fi)) return;
+      const r = slot.getBoundingClientRect();
+      const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      slot.classList.toggle('on', over && canDropFound(DR.cards[0], fi));
+    });
+  }
+}
+
+function onDragEnd(e) {
+  if (!DR) return;
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+
+  const ghost = document.getElementById('ghost');
+  ghost.style.display = 'none';
+  ghost.innerHTML = '';
+  document.querySelectorAll('.col-hl').forEach(h => h.classList.remove('on'));
+  document.querySelectorAll('.found-hl').forEach(h => h.classList.remove('on'));
+
+  const mx = e.clientX, my = e.clientY;
+
+  // Check foundation drop first (single card only)
+  let placed = false;
+  if (DR.cards.length === 1) {
+    document.querySelectorAll('.found-hl').forEach(slot => {
+      if (placed) return;
+      const fi = parseInt(slot.dataset.fi);
+      if (isNaN(fi)) return;
+      const r = slot.getBoundingClientRect();
+      if (mx >= r.left && mx <= r.right && my >= r.top && my <= r.bottom && canDropFound(DR.cards[0], fi)) {
+        if (DR.src === 'waste') execWasteToFound(fi);
+        else execTabToFound(DR.col, fi);
+        placed = true;
+      }
+    });
+  }
+
+  // Check tableau drop
+  if (!placed) {
+    document.querySelectorAll('.col').forEach(colEl => {
+      if (placed) return;
+      const toCol = parseInt(colEl.dataset.col);
+      if (isNaN(toCol)) return;
+      const r = colEl.getBoundingClientRect();
+      if (mx >= r.left && mx <= r.right && canDropTab(DR.cards, toCol)) {
+        if (DR.src === 'waste') execWasteToTab(toCol);
+        else if (toCol !== DR.col) execTabToTab(DR.col, DR.fromIdx, toCol);
+        placed = true;
+      }
+    });
+  }
+
+  const wasMoved = DR.moved;
+  DR = null;
+
+  if (placed || wasMoved) {
+    render();  // rebuild DOM only after an actual drag/drop
+  } else {
+    // Just a click (no drag) — remove dim effect, keep DOM intact for dblclick
+    document.querySelectorAll('.drag-src').forEach(el => el.classList.remove('drag-src'));
+  }
+}
+
+/* =====================================================
+   WIN
+   ===================================================== */
+function showWin() {
+  document.getElementById('win-info').textContent = `得分 ${G.score}  ·  步数 ${G.moves}`;
+  document.getElementById('win-ov').classList.add('show');
+}
+
+/* =====================================================
+   TAB SWITCHING
+   ===================================================== */
+let ACTIVE_TAB = 'kl';
+
+function switchTab(tab) {
+  if (ACTIVE_TAB === tab) return;
+  ACTIVE_TAB = tab;
+  AUTO_RUNNING = false;
+
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+
+  const isKl = tab === 'kl';
+  document.getElementById('kl-section').style.display = isKl ? '' : 'none';
+  document.getElementById('sp-section').style.display = isKl ? 'none' : '';
+  // hint button visible for both games
+
+  if (isKl) {
+    document.getElementById('hdr-title-text').textContent = '接龙纸牌';
+    document.getElementById('hdr-title-sub').textContent = 'SOLITAIRE';
+    updateKlStats();
+  } else {
+    document.getElementById('hdr-title-text').textContent = '蜘蛛纸牌';
+    document.getElementById('hdr-title-sub').textContent = 'SPIDER';
+    if (!SP) { spShowDiff(); return; }
+    updateSpStats();
+  }
+}
+
+function activeUndo()    { ACTIVE_TAB === 'kl' ? doUndo()   : spUndo(); }
+function activeHint()    { ACTIVE_TAB === 'kl' ? showHint() : spShowHint(); }
+function activeNewGame() {
+  if (ACTIVE_TAB === 'kl') {
+    document.getElementById('diff-ov').classList.add('show');
+  } else {
+    spShowDiff();
+  }
+}
+
+function updateKlStats() {
+  if (!G) return;
+  document.getElementById('sv').textContent = G.score;
+  document.getElementById('mv').textContent = G.moves;
+  document.getElementById('undo-btn').disabled = HIST.length === 0;
+}
+function updateSpStats() {
+  if (!SP) return;
+  document.getElementById('sv').textContent = SP.score;
+  document.getElementById('mv').textContent = SP.moves;
+  document.getElementById('undo-btn').disabled = SP_HIST.length === 0;
+}
+
+/* =====================================================
+   SPIDER — CONSTANTS & STATE
+   ===================================================== */
+const SP_FDO = 20;  // face-down overlap
+const SP_FUO = 28;  // face-up overlap
+
+let SP      = null;
+let SP_HIST = [];
+let SP_DR   = null;
+
+/* =====================================================
+   SPIDER — INIT
+   ===================================================== */
+function spMakeDeck(diff) {
+  const sm = { 1:[0,0,0,0,0,0,0,0], 2:[0,0,0,0,1,1,1,1], 4:[0,1,2,3,0,1,2,3] }[diff];
+  let d = [];
+  for (let i = 0; i < 8; i++)
+    for (let v = 1; v <= 13; v++)
+      d.push({ s: sm[i], v, up: false });
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+function spNewGame(diff) {
+  SP_AUTO = false;
+  SP_HIST = [];
+  SP_DR = null;
+  const deck = spMakeDeck(diff);
+  const tab = Array.from({length:10}, () => []);
+  let idx = 0;
+  for (let c = 0; c < 10; c++) {
+    const n = c < 4 ? 6 : 5;
+    for (let i = 0; i < n; i++) tab[c].push({...deck[idx++]});
+    tab[c][tab[c].length - 1].up = true;
+  }
+  SP = {
+    tab, found: Array.from({length:8}, () => []),
+    stock: deck.slice(idx).map(x => ({...x})),
+    score: 500, moves: 0, diff
+  };
+  document.getElementById('sp-diff-ov').style.display = 'none';
+  spRender();
+}
+
+function spClone() {
+  return {
+    tab:   SP.tab.map(c => c.map(x => ({...x}))),
+    found: SP.found.map(p => p.map(x => ({...x}))),
+    stock: SP.stock.map(x => ({...x})),
+    score: SP.score, moves: SP.moves, diff: SP.diff
+  };
+}
+
+function spShowDiff() {
+  document.getElementById('sp-diff-ov').style.display = 'flex';
+}
+
+/* =====================================================
+   SPIDER — LOGIC
+   ===================================================== */
+function spCanPickUp(col, fromIdx) {
+  const cards = SP.tab[col];
+  if (fromIdx >= cards.length || !cards[fromIdx].up) return false;
+  for (let i = fromIdx; i < cards.length - 1; i++) {
+    if (!cards[i+1].up) return false;
+    if (cards[i+1].s !== cards[i].s) return false;
+    if (cards[i+1].v !== cards[i].v - 1) return false;
+  }
+  return true;
+}
+
+function spCanDrop(dragCards, toCol) {
+  const col = SP.tab[toCol];
+  if (col.length === 0) return true;
+  const top = col[col.length - 1];
+  return top.up && top.v === dragCards[0].v + 1;
+}
+
+function spExecMove(fromCol, fromIdx, toCol) {
+  SP_HIST.push(spClone());
+  if (SP_HIST.length > 50) SP_HIST.shift();
+  const moved = SP.tab[fromCol].splice(fromIdx);
+  SP.tab[toCol].push(...moved);
+  SP.moves++;
+  SP.score = Math.max(0, SP.score - 1);
+  const src = SP.tab[fromCol];
+  if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
+  spCheckSeqs();
+}
+
+function spCheckSeqs() {
+  for (let col = 0; col < 10; col++) {
+    const cards = SP.tab[col];
+    if (cards.length < 13) continue;
+    const s = cards.length - 13;
+    if (cards[s].v !== 13) continue;
+    const suit = cards[s].s;
+    let ok = true;
+    for (let i = s; i < cards.length; i++) {
+      if (!cards[i].up || cards[i].s !== suit || cards[i].v !== 13-(i-s)) { ok=false; break; }
+    }
+    if (ok) {
+      const fi = SP.found.findIndex(f => f.length === 0);
+      if (fi !== -1) {
+        SP.found[fi] = cards.splice(s);
+        SP.score += 100;
+        if (cards.length > 0 && !cards[cards.length-1].up) cards[cards.length-1].up = true;
+      }
+    }
+  }
+  if (SP.found.filter(f => f.length === 13).length === 8)
+    setTimeout(() => {
+      document.getElementById('win-sub').textContent = '蜘蛛纸牌完成！';
+      document.getElementById('win-info').textContent = `得分 ${SP.score}  ·  步数 ${SP.moves}`;
+      document.getElementById('win-ov').classList.add('show');
+    }, 400);
+}
+
+function spDealStock() {
+  if (SP.stock.length === 0) return;
+  SP_HIST.push(spClone());
+  if (SP_HIST.length > 50) SP_HIST.shift();
+  for (let c = 0; c < 10; c++) {
+    const card = SP.stock.pop();
+    card.up = true;
+    SP.tab[c].push(card);
+  }
+  SP.moves++;
+  SP.score = Math.max(0, SP.score - 1);
+  spCheckSeqs();
+  spRender();
+}
+
+function spUndo() {
+  if (!SP_HIST.length) return;
+  SP_AUTO = false;
+  SP = SP_HIST.pop();
+  spRender();
+}
+
+/* =====================================================
+   SPIDER — RENDER
+   ===================================================== */
+function spRender() {
+  spRenderFounds();
+  spRenderStock();
+  spRenderTab();
+  updateSpStats();
+  if (!SP_AUTO) spCheckAutoComplete();
+}
+
+function spRenderFounds() {
+  const el = document.getElementById('sp-founds');
+  el.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'card-slot';
+    slot.style.cssText = `width:${CW}px;height:${CH}px;`;
+    const pile = SP.found[i];
+    if (pile.length > 0) {
+      const t = pile[pile.length-1];
+      const rc = IS_RED[t.s] ? 'c-red' : 'c-blk';
+      slot.innerHTML = `<div class="card c-face ${rc} found-card">
+        <div class="c-tl"><span class="c-val">${VALS[t.v]}</span><span class="c-suit">${SUITS[t.s]}</span></div>
+        <div class="c-mid">${SUITS[t.s]}</div>
+        <div class="c-br"><span class="c-val">${VALS[t.v]}</span><span class="c-suit">${SUITS[t.s]}</span></div>
+      </div>`;
+    } else {
+      const icons = ['♠','♥','♦','♣','♠','♥','♦','♣'];
+      slot.innerHTML = `<span class="slot-icon">${icons[i]}</span>`;
+    }
+    el.appendChild(slot);
+  }
+}
+
+function spRenderStock() {
+  const el = document.getElementById('sp-stock-el');
+  if (SP.stock.length === 0) {
+    el.innerHTML = `<div class="stock-empty-el"><span class="recycle-icon" style="opacity:.3">✕</span><span class="recycle-text">已空</span></div>`;
+  } else {
+    const deals = SP.stock.length / 10;
+    el.innerHTML = `<div class="stock-back" onclick="spDealStock()" style="cursor:pointer"><span class="stock-badge">${deals}</span></div>`;
+  }
+}
+
+function spRenderTab() {
+  const tab = document.getElementById('sp-tableau');
+  tab.innerHTML = '';
+  for (let col = 0; col < 10; col++) {
+    const cards = SP.tab[col];
+    let h = CH;
+    for (let i = 0; i < cards.length - 1; i++)
+      h += cards[i].up ? SP_FUO : SP_FDO;
+    h = Math.max(h + 8, CH + 8);
+
+    const colEl = document.createElement('div');
+    colEl.className = 'col';
+    colEl.dataset.spcol = col;
+    colEl.style.height = h + 'px';
+
+    if (cards.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'col-empty';
+      colEl.appendChild(empty);
+    }
+
+    const hl = document.createElement('div');
+    hl.className = 'col-hl';
+    hl.dataset.spcol = col;
+    hl.style.height = h + 'px';
+    colEl.appendChild(hl);
+
+    let top = 0;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      const cardEl = document.createElement('div');
+      if (!card.up) {
+        cardEl.className = 'card c-back';
+      } else {
+        const rc = IS_RED[card.s] ? 'c-red' : 'c-blk';
+        const pickable = spCanPickUp(col, i);
+        cardEl.className = `card c-face ${rc}${pickable ? '' : ' no-grab'}`;
+        const sv = VALS[card.v], ss = SUITS[card.s];
+        cardEl.innerHTML = `
+          <div class="c-tl"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>
+          <div class="c-mid">${ss}</div>
+          <div class="c-br"><span class="c-val">${sv}</span><span class="c-suit">${ss}</span></div>`;
+        if (pickable) {
+          cardEl.addEventListener('mousedown', e => spStartDrag(e, col, i));
+          cardEl.addEventListener('dblclick',  () => spTryAutoMove(col, i));
+        }
+      }
+      cardEl.style.top = top + 'px';
+      cardEl.style.zIndex = i + 1;
+      colEl.appendChild(cardEl);
+      if (i < cards.length - 1) top += card.up ? SP_FUO : SP_FDO;
+    }
+    tab.appendChild(colEl);
+  }
+}
+
+/* =====================================================
+   SPIDER — DRAG & DROP
+   ===================================================== */
+/* =====================================================
+   SPIDER — HINT
+   ===================================================== */
+function spFindHint() {
+  const prog = [];
+
+  // Moves that reveal a face-down card — the only truly progressive tab move
+  for (let col = 0; col < 10; col++) {
+    for (let idx = 0; idx < SP.tab[col].length; idx++) {
+      if (!spCanPickUp(col, idx)) continue;
+      const reveals = idx > 0 && !SP.tab[col][idx - 1].up;
+      if (!reveals) continue;
+      const cards = SP.tab[col].slice(idx);
+      for (let tc = 0; tc < 10; tc++) {
+        if (tc === col || !spCanDrop(cards, tc)) continue;
+        prog.push({ type:'tab-tab', fromCol:col, fromIdx:idx, toCol:tc, pri:8 });
+      }
+    }
+  }
+
+  // Deal from stock — only if next batch has at least one useful card
+  if (SP.stock.length > 0) {
+    const nextBatch = SP.stock.slice(-10);
+    const useful = nextBatch.some(card =>
+      SP.tab.some((col, tc) => spCanDrop([card], tc))
+    );
+    if (useful) prog.push({ type:'deal', pri:3 });
+  }
+
+  if (!prog.length) return null;
+  prog.sort((a, b) => b.pri - a.pri);
+  return prog[0];
+}
+
+function spShowHint() {
+  clearHint();
+  const h = spFindHint();
+  if (!h) { toast('😔 无路可走，建议开始新游戏'); return; }
+
+  const applyFrom = el => el && el.classList.add('hint-from');
+  const applyTo   = el => el && el.classList.add('hint-to');
+
+  if (h.type === 'tab-tab') {
+    const colEl = document.querySelector(`#sp-tableau .col[data-spcol="${h.fromCol}"]`);
+    if (colEl) {
+      const all = colEl.querySelectorAll('.card');
+      for (let i = h.fromIdx; i < all.length; i++) applyFrom(all[i]);
+    }
+    const toEl = document.querySelector(`#sp-tableau .col[data-spcol="${h.toCol}"]`);
+    applyTo(toEl?.querySelector('.col-hl'));
+    const c = SP.tab[h.fromCol][h.fromIdx];
+    toast(`💡 将 ${VALS[c.v]}${SUITS[c.s]} 移到第 ${h.toCol + 1} 列`, 3500);
+  } else if (h.type === 'deal') {
+    applyFrom(document.querySelector('#sp-stock-el .stock-back'));
+    toast('💡 点击发牌堆发出下一轮牌', 3000);
+  }
+
+  HINT_TIMER = setTimeout(clearHint, 3500);
+}
+
+/* =====================================================
+   SPIDER — AUTO-COMPLETE
+   ===================================================== */
+let SP_AUTO = false;
+let SP_AUTO_STEPS = 0;
+
+function spCheckAutoComplete() {
+  if (SP_AUTO || !SP) return;
+  if (SP.stock.length > 0) return;
+  if (SP.found.filter(f => f.length === 13).length === 8) return;
+  if (!SP.tab.every(col => col.every(c => c.up))) return;
+  SP_AUTO = true;
+  SP_AUTO_STEPS = 0;
+  toast('✨ 所有牌已翻开，自动归位中…', 2500);
+  setTimeout(spAutoStep, 500);
+}
+
+function spAutoStep() {
+  if (!SP_AUTO) return;
+  if (++SP_AUTO_STEPS > 300) { SP_AUTO = false; return; }
+
+  // Find best move: strongly prefer placing on same-suit card (builds sequences)
+  let best = null;
+  for (let col = 0; col < 10; col++) {
+    for (let idx = 0; idx < SP.tab[col].length; idx++) {
+      if (!spCanPickUp(col, idx)) continue;
+      const seq = SP.tab[col].slice(idx);
+      for (let tc = 0; tc < 10; tc++) {
+        if (tc === col || !spCanDrop(seq, tc)) continue;
+        const tCol = SP.tab[tc];
+        const sameSuit = tCol.length > 0 && tCol[tCol.length-1].s === seq[0].s;
+        const score = sameSuit ? 10 : (tCol.length > 0 ? 2 : 1);
+        if (!best || score > best.score)
+          best = { fromCol:col, fromIdx:idx, toCol:tc, score };
+      }
+    }
+  }
+
+  if (best) {
+    spExecMove(best.fromCol, best.fromIdx, best.toCol);
+    spRender();
+    setTimeout(spAutoStep, 160);
+  } else {
+    SP_AUTO = false;
+  }
+}
+
+function spTryAutoMove(col, fromIdx) {
+  if (!spCanPickUp(col, fromIdx)) return;
+  const cards = SP.tab[col].slice(fromIdx);
+  // Prefer columns that reveal a face-down card; among those, prefer non-empty
+  let best = -1;
+  // Pass 1: non-empty columns
+  for (let c = 0; c < 10; c++) {
+    if (c === col || SP.tab[c].length === 0) continue;
+    if (spCanDrop(cards, c)) { best = c; break; }
+  }
+  // Pass 2: empty columns
+  if (best === -1) {
+    for (let c = 0; c < 10; c++) {
+      if (c === col) continue;
+      if (spCanDrop(cards, c)) { best = c; break; }
+    }
+  }
+  if (best !== -1) { spExecMove(col, fromIdx, best); spRender(); }
+}
+
+function spStartDrag(e, col, fromIdx) {
+  e.preventDefault(); e.stopPropagation();
+  const cards = SP.tab[col].slice(fromIdx);
+  if (!cards.length) return;
+
+  const colEl = document.querySelector(`#sp-tableau .col[data-spcol="${col}"]`);
+  const firstEl = colEl ? colEl.querySelectorAll('.card')[fromIdx] : null;
+  if (!firstEl) return;
+
+  const rect = firstEl.getBoundingClientRect();
+  const ox = e.clientX - rect.left, oy = e.clientY - rect.top;
+
+  const colCards = colEl.querySelectorAll('.card');
+  for (let i = fromIdx; i < colCards.length; i++) colCards[i].classList.add('drag-src');
+
+  const ghost = document.getElementById('ghost');
+  ghost.innerHTML = ''; ghost.style.display = 'none';
+  ghost.style.width = CW + 'px';
+  const ghostH = CH + (cards.length - 1) * SP_FUO;
+  ghost.style.height = ghostH + 'px';
+
+  let gt = 0;
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    const rc = IS_RED[c.s] ? 'c-red' : 'c-blk';
+    const el = document.createElement('div');
+    el.className = `card c-face ${rc}`;
+    el.style.cssText = `position:absolute;top:${gt}px;z-index:${i+1}`;
+    el.innerHTML = `
+      <div class="c-tl"><span class="c-val">${VALS[c.v]}</span><span class="c-suit">${SUITS[c.s]}</span></div>
+      <div class="c-mid">${SUITS[c.s]}</div>
+      <div class="c-br"><span class="c-val">${VALS[c.v]}</span><span class="c-suit">${SUITS[c.s]}</span></div>`;
+    ghost.appendChild(el);
+    gt += SP_FUO;
+  }
+  ghost.style.left = (e.clientX - ox) + 'px';
+  ghost.style.top  = (e.clientY - oy) + 'px';
+
+  SP_DR = { col, fromIdx, cards, ox, oy, moved: false };
+  document.addEventListener('mousemove', spOnMove);
+  document.addEventListener('mouseup',   spOnEnd);
+}
+
+function spOnMove(e) {
+  if (!SP_DR) return;
+  if (!SP_DR.moved) {
+    const gx = parseFloat(document.getElementById('ghost').style.left) + SP_DR.ox;
+    const gy = parseFloat(document.getElementById('ghost').style.top)  + SP_DR.oy;
+    if (Math.abs(e.clientX - gx) + Math.abs(e.clientY - gy) < 5) return;
+    SP_DR.moved = true;
+    document.getElementById('ghost').style.display = 'block';
+  }
+  const ghost = document.getElementById('ghost');
+  ghost.style.left = (e.clientX - SP_DR.ox) + 'px';
+  ghost.style.top  = (e.clientY - SP_DR.oy) + 'px';
+
+  document.querySelectorAll('#sp-tableau .col-hl').forEach(hl => {
+    const c = parseInt(hl.dataset.spcol);
+    if (isNaN(c)) return;
+    const r = hl.closest('.col').getBoundingClientRect();
+    hl.classList.toggle('on', e.clientX >= r.left && e.clientX <= r.right && spCanDrop(SP_DR.cards, c));
+  });
+}
+
+function spOnEnd(e) {
+  if (!SP_DR) return;
+  document.removeEventListener('mousemove', spOnMove);
+  document.removeEventListener('mouseup',   spOnEnd);
+
+  const ghost = document.getElementById('ghost');
+  ghost.style.display = 'none'; ghost.innerHTML = '';
+  document.querySelectorAll('#sp-tableau .col-hl').forEach(h => h.classList.remove('on'));
+
+  let placed = false;
+  document.querySelectorAll('#sp-tableau .col').forEach(colEl => {
+    if (placed) return;
+    const toCol = parseInt(colEl.dataset.spcol);
+    if (isNaN(toCol)) return;
+    const r = colEl.getBoundingClientRect();
+    if (e.clientX >= r.left && e.clientX <= r.right && spCanDrop(SP_DR.cards, toCol) && toCol !== SP_DR.col) {
+      spExecMove(SP_DR.col, SP_DR.fromIdx, toCol);
+      placed = true;
+    }
+  });
+
+  const wasMoved = SP_DR.moved;
+  SP_DR = null;
+  if (placed || wasMoved) spRender();
+  else document.querySelectorAll('.drag-src').forEach(el => el.classList.remove('drag-src'));
+}
+
+/* =====================================================
+   START
+   ===================================================== */
+newGame();
+</script>
+</body>
+</html>
