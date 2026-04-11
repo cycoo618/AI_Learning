@@ -1647,6 +1647,7 @@ function spShowHint() {
 let SP_AUTO = false;
 let SP_AUTO_STEPS = 0;
 let SP_AUTO_SEEN = new Set();
+let SP_AUTO_NUDGES = 0;
 
 function spBoardHash() {
   return SP.tab.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
@@ -1659,19 +1660,13 @@ function spCheckAutoComplete() {
   if (!SP.tab.every(col => col.every(c => c.up))) return;
   SP_AUTO = true;
   SP_AUTO_STEPS = 0;
+  SP_AUTO_NUDGES = 0;
   SP_AUTO_SEEN = new Set();
   toast('✨ 所有牌已翻开，自动归位中…', 2500);
   setTimeout(spAutoStep, 500);
 }
 
-function spAutoStep() {
-  if (!SP_AUTO) return;
-  if (++SP_AUTO_STEPS > 600) { SP_AUTO = false; return; }
-
-  // Mark current state as visited
-  SP_AUTO_SEEN.add(spBoardHash());
-
-  // Collect all valid moves sorted by priority (same-suit + longer sequence = better)
+function spCollectMoves() {
   const moves = [];
   for (let col = 0; col < 10; col++) {
     for (let idx = 0; idx < SP.tab[col].length; idx++) {
@@ -1686,9 +1681,25 @@ function spAutoStep() {
       }
     }
   }
-  moves.sort((a, b) => b.pri - a.pri);
+  return moves.sort((a, b) => b.pri - a.pri);
+}
 
-  // Try each move; skip moves whose simulated result was already visited
+function spApplyAutoMove(m) {
+  const movedCards = SP.tab[m.fromCol].splice(m.fromIdx);
+  SP.tab[m.toCol].push(...movedCards);
+  const src = SP.tab[m.fromCol];
+  if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
+  spCheckSeqs();
+}
+
+function spAutoStep() {
+  if (!SP_AUTO) return;
+  if (++SP_AUTO_STEPS > 800) { SP_AUTO = false; return; }
+
+  SP_AUTO_SEEN.add(spBoardHash());
+  const moves = spCollectMoves();
+
+  // Try each move; prefer ones that reach a new (unseen) board state
   for (const m of moves) {
     const sim = SP.tab.map(c => c.slice());
     const moved = sim[m.fromCol].splice(m.fromIdx);
@@ -1696,18 +1707,23 @@ function spAutoStep() {
     const simHash = sim.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
     if (SP_AUTO_SEEN.has(simHash)) continue;
 
-    // Execute the chosen move without score/moves penalty
-    const movedCards = SP.tab[m.fromCol].splice(m.fromIdx);
-    SP.tab[m.toCol].push(...movedCards);
-    const src = SP.tab[m.fromCol];
-    if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
-    spCheckSeqs();
+    spApplyAutoMove(m);
     spRender();
     setTimeout(spAutoStep, 160);
     return;
   }
 
-  // Every available move leads to an already-visited state → truly stuck
+  // All moves cycle — nudge: reset seen set and try a different move to escape
+  if (SP_AUTO_NUDGES < 25 && moves.length > 0) {
+    SP_AUTO_NUDGES++;
+    SP_AUTO_SEEN = new Set();
+    // Rotate through available moves so each nudge tries a different escape
+    spApplyAutoMove(moves[SP_AUTO_NUDGES % moves.length]);
+    spRender();
+    setTimeout(spAutoStep, 160);
+    return;
+  }
+
   SP_AUTO = false;
 }
 
