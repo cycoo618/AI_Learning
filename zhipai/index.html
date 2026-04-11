@@ -1666,15 +1666,13 @@ function spCheckAutoComplete() {
 
 function spAutoStep() {
   if (!SP_AUTO) return;
-  if (++SP_AUTO_STEPS > 500) { SP_AUTO = false; return; }
+  if (++SP_AUTO_STEPS > 600) { SP_AUTO = false; return; }
 
-  // Cycle detection: stop if we've seen this board state before
-  const hash = spBoardHash();
-  if (SP_AUTO_SEEN.has(hash)) { SP_AUTO = false; return; }
-  SP_AUTO_SEEN.add(hash);
+  // Mark current state as visited
+  SP_AUTO_SEEN.add(spBoardHash());
 
-  // Find best move: prefer same-suit placements that extend sequences
-  let best = null;
+  // Collect all valid moves sorted by priority (same-suit + longer sequence = better)
+  const moves = [];
   for (let col = 0; col < 10; col++) {
     for (let idx = 0; idx < SP.tab[col].length; idx++) {
       if (!spCanPickUp(col, idx)) continue;
@@ -1683,27 +1681,34 @@ function spAutoStep() {
         if (tc === col || !spCanDrop(seq, tc)) continue;
         const tCol = SP.tab[tc];
         const sameSuit = tCol.length > 0 && tCol[tCol.length-1].s === seq[0].s;
-        // Bonus if this move would extend a sequence toward K→A completion
-        const seqLen = sameSuit ? idx + seq.length : seq.length;
-        const moveScore = sameSuit ? 10 + seqLen : (tCol.length > 0 ? 2 : 1);
-        if (!best || moveScore > best.moveScore)
-          best = { fromCol:col, fromIdx:idx, toCol:tc, moveScore };
+        moves.push({ fromCol:col, fromIdx:idx, toCol:tc,
+          pri: sameSuit ? 10 + idx + seq.length : (tCol.length > 0 ? 2 : 1) });
       }
     }
   }
+  moves.sort((a, b) => b.pri - a.pri);
 
-  if (best) {
-    // Move directly without score/moves penalty during auto-complete
-    const moved = SP.tab[best.fromCol].splice(best.fromIdx);
-    SP.tab[best.toCol].push(...moved);
-    const src = SP.tab[best.fromCol];
+  // Try each move; skip moves whose simulated result was already visited
+  for (const m of moves) {
+    const sim = SP.tab.map(c => c.slice());
+    const moved = sim[m.fromCol].splice(m.fromIdx);
+    sim[m.toCol].push(...moved);
+    const simHash = sim.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
+    if (SP_AUTO_SEEN.has(simHash)) continue;
+
+    // Execute the chosen move without score/moves penalty
+    const movedCards = SP.tab[m.fromCol].splice(m.fromIdx);
+    SP.tab[m.toCol].push(...movedCards);
+    const src = SP.tab[m.fromCol];
     if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
     spCheckSeqs();
     spRender();
     setTimeout(spAutoStep, 160);
-  } else {
-    SP_AUTO = false;
+    return;
   }
+
+  // Every available move leads to an already-visited state → truly stuck
+  SP_AUTO = false;
 }
 
 function spTryAutoMove(col, fromIdx) {
