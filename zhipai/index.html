@@ -1362,6 +1362,7 @@ function spNewGame(diff) {
   SP_AUTO = false;
   SP_HIST = [];
   SP_DR = null;
+  SP_NO_MOVES_SHOWN = false;
   updateSizes();
   const deck = spMakeDeck(diff);
   const tab = Array.from({length:10}, () => []);
@@ -1472,6 +1473,7 @@ function spDealStock() {
 function spUndo() {
   if (!SP_HIST.length) return;
   SP_AUTO = false;
+  SP_NO_MOVES_SHOWN = false;
   SP = SP_HIST.pop();
   spRender();
 }
@@ -1484,7 +1486,7 @@ function spRender() {
   spRenderStock();
   spRenderTab();
   updateSpStats();
-  if (!SP_AUTO) spCheckAutoComplete();
+  if (!SP_AUTO) spCheckNoMoves();
 }
 
 function spRenderFounds() {
@@ -1645,86 +1647,30 @@ function spShowHint() {
    SPIDER — AUTO-COMPLETE
    ===================================================== */
 let SP_AUTO = false;
-let SP_AUTO_STEPS = 0;
-let SP_AUTO_SEEN = new Set();
-let SP_AUTO_NUDGES = 0;
 
-function spBoardHash() {
-  return SP.tab.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
-}
-
-function spCheckAutoComplete() {
-  if (SP_AUTO || !SP) return;
-  if (SP.stock.length > 0) return;
-  if (SP.found.filter(f => f.length === 13).length === 8) return;
-  if (!SP.tab.every(col => col.every(c => c.up))) return;
-  SP_AUTO = true;
-  SP_AUTO_STEPS = 0;
-  SP_AUTO_NUDGES = 0;
-  SP_AUTO_SEEN = new Set();
-  toast('✨ 所有牌已翻开，自动归位中…', 2500);
-  setTimeout(spAutoStep, 500);
-}
-
-function spCollectMoves() {
-  const moves = [];
+function spHasAnyMove() {
+  if (SP.stock.length > 0) return true;
   for (let col = 0; col < 10; col++) {
     for (let idx = 0; idx < SP.tab[col].length; idx++) {
       if (!spCanPickUp(col, idx)) continue;
       const seq = SP.tab[col].slice(idx);
       for (let tc = 0; tc < 10; tc++) {
-        if (tc === col || !spCanDrop(seq, tc)) continue;
-        const tCol = SP.tab[tc];
-        const sameSuit = tCol.length > 0 && tCol[tCol.length-1].s === seq[0].s;
-        moves.push({ fromCol:col, fromIdx:idx, toCol:tc,
-          pri: sameSuit ? 10 + idx + seq.length : (tCol.length > 0 ? 2 : 1) });
+        if (tc !== col && spCanDrop(seq, tc)) return true;
       }
     }
   }
-  return moves.sort((a, b) => b.pri - a.pri);
+  return false;
 }
 
-function spApplyAutoMove(m) {
-  const movedCards = SP.tab[m.fromCol].splice(m.fromIdx);
-  SP.tab[m.toCol].push(...movedCards);
-  const src = SP.tab[m.fromCol];
-  if (src.length > 0 && !src[src.length-1].up) src[src.length-1].up = true;
-  spCheckSeqs();
-}
+let SP_NO_MOVES_SHOWN = false;
 
-function spAutoStep() {
-  if (!SP_AUTO) return;
-  if (++SP_AUTO_STEPS > 800) { SP_AUTO = false; return; }
-
-  SP_AUTO_SEEN.add(spBoardHash());
-  const moves = spCollectMoves();
-
-  // Try each move; prefer ones that reach a new (unseen) board state
-  for (const m of moves) {
-    const sim = SP.tab.map(c => c.slice());
-    const moved = sim[m.fromCol].splice(m.fromIdx);
-    sim[m.toCol].push(...moved);
-    const simHash = sim.map(col => col.map(c => c.s + ',' + c.v).join('/')).join('|');
-    if (SP_AUTO_SEEN.has(simHash)) continue;
-
-    spApplyAutoMove(m);
-    spRender();
-    setTimeout(spAutoStep, 160);
-    return;
-  }
-
-  // All moves cycle — nudge: reset seen set and try a different move to escape
-  if (SP_AUTO_NUDGES < 25 && moves.length > 0) {
-    SP_AUTO_NUDGES++;
-    SP_AUTO_SEEN = new Set();
-    // Rotate through available moves so each nudge tries a different escape
-    spApplyAutoMove(moves[SP_AUTO_NUDGES % moves.length]);
-    spRender();
-    setTimeout(spAutoStep, 160);
-    return;
-  }
-
-  SP_AUTO = false;
+function spCheckNoMoves() {
+  if (!SP || SP_AUTO) return;
+  if (SP.found.filter(f => f.length === 13).length === 8) return;
+  if (spHasAnyMove()) { SP_NO_MOVES_SHOWN = false; return; }
+  if (SP_NO_MOVES_SHOWN) return;
+  SP_NO_MOVES_SHOWN = true;
+  setTimeout(() => toast('😔 无路可走，建议开始新游戏'), 400);
 }
 
 function spTryAutoMove(col, fromIdx) {
