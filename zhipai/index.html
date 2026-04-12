@@ -1284,7 +1284,7 @@ function activeUndo()    { ACTIVE_TAB === 'kl' ? doUndo()   : spUndo(); }
 function activeHint()    { ACTIVE_TAB === 'kl' ? showHint() : spShowHint(); }
 function activeNewGame() {
   if (ACTIVE_TAB === 'kl') {
-    document.getElementById('diff-ov').classList.add('show');
+    newGame();
   } else {
     spShowDiff();
   }
